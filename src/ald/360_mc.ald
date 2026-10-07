@@ -854,15 +854,15 @@ SECTION MC
 
 ; PAGE MC351
 
-+ignore se size[31..23]
-  +reg se size[31..23](*)
++ignore se size[31..24]
+  +reg se size[31..24](*)
 +se 1 decoded
   ANDNOT
-    -temp[1..23]
+    -temp[0..23]
       AND
-        +sab[1..23](MA)
+        +sab[0..23](MA)
         NOT
-          +reg se size[22..0](*)
+          +reg se size[23..0](*)
 
 ; PAGE MC381
 
