@@ -1406,6 +1406,13 @@ extern "C" {
         io_65 = ((i & 7) << 24) | (i & 0xf00) | ((i >> 24) & 0xff);
     }
     void record_herc_io(int i) {
+        // Compare IOCE transactions, rather than every I/O instruction.
+        // KX decodes only IOCE 1 (channels 0..3). TCH of another IOCE
+        // completes locally with CC=3, which cpu.c checks independently.
+        // Do not suppress CC=3 within IOCE 1: an absent channel there
+        // still generates an IOCE transaction that must be compared.
+        if ((i & 0xff000000) == 0x07000000 && (i & 0x00000c00))
+            return;
         io_herc = i;
     }
 
