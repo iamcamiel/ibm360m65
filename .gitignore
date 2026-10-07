@@ -70,3 +70,4 @@ xise/ald_summary.html
 /os360mvt
 hercules/UpgradeLog.htm
 hercules/Hercules.vcxproj.user
+__pycache__/

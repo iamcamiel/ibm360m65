@@ -253,6 +253,10 @@ U32    *p1, *p2 = NULL;                 /* Mainstor pointers         */
     else
         m = n;
 
+#if defined(COMPARE_M65)
+    U32* compare_first = p1;
+    U32* compare_second = p2;
+#endif
     /* Store at operand beginning */
     for (i = 0; i < m; i++)
         store_fw (p1++, regs->CR_L((r1 + i) & 0xF));
@@ -262,6 +266,12 @@ U32    *p1, *p2 = NULL;                 /* Mainstor pointers         */
         store_fw (p2++, regs->CR_L((r1 + i) & 0xF));
 
     ITIMER_UPDATE(effective_addr2,(n*4)-1,regs);
+#if defined(COMPARE_M65)
+    record_herc_write(effective_addr2, m*4, (char*)compare_first);
+    if (m < n)
+        record_herc_write((effective_addr2 + m*4) & ADDRESS_MAXWRAP(regs),
+                          (n-m)*4, (char*)compare_second);
+#endif
 
 } /* end DEF_INST(store_control) */
 

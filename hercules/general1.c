@@ -701,6 +701,9 @@ U32     old;                            /* old value                 */
     else
     {
         ITIMER_UPDATE(addr2,4-1,regs);
+#if defined(COMPARE_M65)
+        record_herc_write(addr2, 4, (char*)main2);
+#endif
     }
 }
 
@@ -1725,9 +1728,16 @@ int     i;                              /* Loop counter              */
     sk1 = regs->dat.storkey;
     source1 = MADDR (addr2, arn2, regs, ACCTYPE_READ, regs->psw.pkey);
 
+#if defined(COMPARE_M65)
+    /* MOVE_ZONE_BUMP advances dest1; retain the start for write recording. */
+    BYTE* compare_dest = dest1;
+#endif
     for ( i = 0; i <= len; i++)
         MOVE_ZONE_BUMP(dest1,source1);
     ITIMER_UPDATE(addr1,len,regs);
+#if defined(COMPARE_M65)
+    record_herc_write(addr1, len + 1, (char*)compare_dest);
+#endif
 }
 
 

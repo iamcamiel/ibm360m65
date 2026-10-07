@@ -49,8 +49,14 @@ void single_cycle();
 
 #if defined(COMPARE_M65)
 void record_65_write(int sea, int wh, int wl);
+void record_65_write_char(int addr, char data);
+void record_65_set_key(int sec, int sea);
 void record_herc_write(int addr, int len, char* data);
 void record_herc_write_char(int addr, char data);
+// Record a field stored directly into the CPU's absolute main-storage array.
+#define RECORD_HERC_ABSOLUTE_FIELD(regs, field) \
+    record_herc_write((int)((char*)(field) - (char*)(regs)->mainstor), \
+                      sizeof(field), (char*)(field))
 void record_herc_set_key(int addr, char data);
 void record_65_io(int);
 void record_herc_io(int);

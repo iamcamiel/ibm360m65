@@ -177,11 +177,11 @@ _VSTORE_C_STATIC void ARCH_DEP(vstoreb) (BYTE value, VADR addr,
 {
 BYTE   *main1;                          /* Mainstor address          */
 
+    main1 = MADDR(addr, arn, regs, ACCTYPE_WRITE, regs->psw.pkey);
+    *main1 = value;
 #if defined(COMPARE_M65)
     record_herc_write_char(addr, value);
 #endif
-    main1 = MADDR(addr, arn, regs, ACCTYPE_WRITE, regs->psw.pkey);
-    *main1 = value;
     ITIMER_UPDATE(addr,1-1,regs);
 
 } /* end function ARCH_DEP(vstoreb) */
@@ -190,13 +190,12 @@ BYTE   *main1;                          /* Mainstor address          */
 _VSTORE_C_STATIC void ARCH_DEP(vstore2) (U16 value, VADR addr, int arn,
                                                             REGS *regs)
 {
-#if defined(COMPARE_M65)
-    record_herc_write_char(addr, value >> 8);
-    record_herc_write_char(addr + 1, value & 0xff);
-#endif
     BYTE *mn;
     mn = MADDR (addr, arn, regs, ACCTYPE_WRITE, regs->psw.pkey);
     STORE_HW(mn, value);
+#if defined(COMPARE_M65)
+    record_herc_write(addr, 2, (char*)mn);
+#endif
     ITIMER_UPDATE(addr,2-1,regs);
 
 } /* end function ARCH_DEP(vstore2) */
@@ -248,6 +247,10 @@ BYTE    temp[8];                        /* Copied value              */
     STORE_DW(temp, value);
     memcpy(main1, temp, len);
     memcpy(main2, temp+len, 8-len);
+#if defined(COMPARE_M65)
+    record_herc_write(addr, len, (char*)main1);
+    record_herc_write((addr + len) & ADDRESS_MAXWRAP(regs), 8-len, (char*)main2);
+#endif
 
 } /* end function ARCH_DEP(vstore8) */
 _VSTORE_C_STATIC void ARCH_DEP(vstore8) (U64 value, VADR addr, int arn,
@@ -264,6 +267,9 @@ _VSTORE_C_STATIC void ARCH_DEP(vstore8) (U64 value, VADR addr, int arn,
         else
 #endif
         STORE_DW(mn, value);
+#if defined(COMPARE_M65)
+        record_herc_write(addr, 8, (char*)mn);
+#endif
     }
     else
     {
@@ -271,6 +277,9 @@ _VSTORE_C_STATIC void ARCH_DEP(vstore8) (U64 value, VADR addr, int arn,
         mn = MADDR(addr,arn,regs,ACCTYPE_WRITE,regs->psw.pkey);
         /* invoking STORE_DW ensures endianness correctness */
         STORE_DW(mn,value);
+#if defined(COMPARE_M65)
+        record_herc_write(addr, 8, (char*)mn);
+#endif
     }
     ITIMER_UPDATE(addr,8-1,regs);
 }

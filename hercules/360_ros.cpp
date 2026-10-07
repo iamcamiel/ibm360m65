@@ -15,6 +15,7 @@
 // * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 #include "360_struc.h"
+#include <cstdlib>
 #include <string>
 #include <iostream>
 #include <fstream>
@@ -30,8 +31,8 @@ extern "C" {
 
     FILE* lf;
     bool logging = true;
-    bool mon_cycle = true;
-    bool mon_ros = true;
+    bool mon_cycle = false;
+    bool mon_ros = false;
     bool mon_20 = false;
     bool mon_stor = false;
 
@@ -412,6 +413,13 @@ extern "C" {
     }
 
     void full_init() {
+        const char* cycle_trace = std::getenv("M65_TRACE_CYCLES");
+        const char* ros_trace = std::getenv("M65_TRACE_ROS");
+        const char* interval_timer = std::getenv("M65_INTERVAL_TIMER");
+        const bool disable_interval_timer = interval_timer && std::strcmp(interval_timer, "0") == 0;
+        mon_cycle = cycle_trace && std::strcmp(cycle_trace, "1") == 0;
+        mon_ros = ros_trace && std::strcmp(ros_trace, "1") == 0;
+
         init_ros();
 
         init_ald();
@@ -438,7 +446,8 @@ extern "C" {
         newstate.EXTERNAL_.switches_7.B6 = true;
         newstate.EXTERNAL_.switches_7.B9 = true;
         newstate.EXTERNAL_.switches_7.B0 = true;
-        newstate.EXTERNAL_.switches_7.B13 = true;
+        // Active-low console DISABLE TIMER switch (ALD PK051/KW371).
+        newstate.EXTERNAL_.switches_7.B13 = !disable_interval_timer;
         newstate.EXTERNAL_.switches_7.B10 = true;
         newstate.EXTERNAL_.switches_7.B1 = true;
         newstate.EXTERNAL_.switches_7.B4 = true;

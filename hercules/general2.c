@@ -872,6 +872,9 @@ BYTE    old;                            /* Old value                 */
     /* Attempt to exchange the values */
     while (cmpxchg1(&old, 255, main2));
     regs->psw.cc = old >> 7;
+#if defined(COMPARE_M65)
+    record_herc_write_char(effective_addr2, *main2);
+#endif
 
     /* Release main-storage access lock */
     RELEASE_MAINLOCK(regs);

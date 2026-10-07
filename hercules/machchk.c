@@ -203,6 +203,12 @@ RADR    fsta = 0;
 
     /* Store the failing storage address at PSA+248 */
     STORE_FW(psa->mcstorad, fsta);
+#if defined(COMPARE_M65)
+    RECORD_HERC_ABSOLUTE_FIELD(regs, psa->storepsw);
+    RECORD_HERC_ABSOLUTE_FIELD(regs, psa->mckint);
+    RECORD_HERC_ABSOLUTE_FIELD(regs, psa->xdmgcode);
+    RECORD_HERC_ABSOLUTE_FIELD(regs, psa->mcstorad);
+#endif
 
     /* Store current PSW at PSA+X'30' */
     ARCH_DEP(store_psw) ( regs, psa->mckold );

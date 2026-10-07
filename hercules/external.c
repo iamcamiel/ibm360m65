@@ -80,7 +80,12 @@ int     rc;
     /* Zero extcpuad field unless extcall or ems signal or blockio */
     if(code != EXT_EXTERNAL_CALL_INTERRUPT
     && code != EXT_EMERGENCY_SIGNAL_INTERRUPT)
+    {
         STORE_HW(psa->extcpad,0);
+#if defined(COMPARE_M65)
+        RECORD_HERC_ABSOLUTE_FIELD(regs, psa->extcpad);
+#endif
+    }
 
     {
         /* Store current PSW at PSA+X'18' */
@@ -162,6 +167,9 @@ U16     cpuad;                          /* Originating CPU address   */
         /* Store originating CPU address at PSA+X'84' */
         psa = (void*)(regs->mainstor);
         STORE_HW(psa->extcpad,cpuad);
+#if defined(COMPARE_M65)
+        RECORD_HERC_ABSOLUTE_FIELD(regs, psa->extcpad);
+#endif
 
         /* Reset emergency signal pending flag if there are
            no other CPUs which generated emergency signal */
@@ -202,6 +210,9 @@ U16     cpuad;                          /* Originating CPU address   */
         /* Store originating CPU address at PSA+X'84' */
         psa = (void*)(regs->mainstor);
         STORE_HW(psa->extcpad,cpuad);
+#if defined(COMPARE_M65)
+        RECORD_HERC_ABSOLUTE_FIELD(regs, psa->extcpad);
+#endif
 
         /* Reset emergency signal pending flag if there are
            no other CPUs which generated emergency signal */
@@ -231,6 +242,9 @@ U16     cpuad;                          /* Originating CPU address   */
         /* Store originating CPU address at PSA+X'84' */
         psa = (void*)(regs->mainstor);
         STORE_HW(psa->extcpad,regs->extccpu);
+#if defined(COMPARE_M65)
+        RECORD_HERC_ABSOLUTE_FIELD(regs, psa->extcpad);
+#endif
 
         /* Generate external call interrupt */
         ARCH_DEP(external_interrupt) (EXT_EXTERNAL_CALL_INTERRUPT, regs);
@@ -290,6 +304,9 @@ U16     cpuad;                          /* Originating CPU address   */
         /* Store service signal parameter at PSA+X'80' */
         psa = (void*)(regs->mainstor);
         STORE_FW(psa->extparm,sysblk.servparm);
+#if defined(COMPARE_M65)
+        RECORD_HERC_ABSOLUTE_FIELD(regs, psa->extparm);
+#endif
 
         /* Reset service parameter */
         sysblk.servparm = 0;
@@ -358,6 +375,15 @@ PSA     *sspsa;                         /* -> Store status area      */
     for (i = 0; i < 16; i++)
         STORE_W(sspsa->storecr[i],ssreg->CR(i));
 
+#if defined(COMPARE_M65)
+    RECORD_HERC_ABSOLUTE_FIELD(ssreg, sspsa->storeptmr);
+    RECORD_HERC_ABSOLUTE_FIELD(ssreg, sspsa->storeclkc);
+    RECORD_HERC_ABSOLUTE_FIELD(ssreg, sspsa->storepfx);
+    RECORD_HERC_ABSOLUTE_FIELD(ssreg, sspsa->storear);
+    RECORD_HERC_ABSOLUTE_FIELD(ssreg, sspsa->storefpr);
+    RECORD_HERC_ABSOLUTE_FIELD(ssreg, sspsa->storegpr);
+    RECORD_HERC_ABSOLUTE_FIELD(ssreg, sspsa->storecr);
+#endif
 } /* end function store_status */
 
 

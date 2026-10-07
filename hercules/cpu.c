@@ -651,6 +651,8 @@ DBLWRD  csw;                            /* CSW for S/370 channels    */
     }
 
     /* Store the channel status word at PSA+X'40' */
+    /* Channel state is supplied by the shared Hercules I/O implementation,
+       so this copy is not a separate model CPU storage transaction. */
     memcpy (psa->csw, csw, 8);
 
     /* Set the interrupt code to the I/O device address */
@@ -744,6 +746,12 @@ RADR    fsta;                           /* Failing storage address   */
 
     /* Store the failing storage address at PSA+248 */
     STORE_FW(psa->mcstorad, fsta);
+#if defined(COMPARE_M65)
+    RECORD_HERC_ABSOLUTE_FIELD(regs, psa->storepsw);
+    RECORD_HERC_ABSOLUTE_FIELD(regs, psa->mckint);
+    RECORD_HERC_ABSOLUTE_FIELD(regs, psa->xdmgcode);
+    RECORD_HERC_ABSOLUTE_FIELD(regs, psa->mcstorad);
+#endif
 
     /* Store current PSW at PSA+X'30' */
     ARCH_DEP(store_psw) ( regs, psa->mckold );
@@ -1064,7 +1072,19 @@ void (ATTR_REGPARM(1) ARCH_DEP(process_interrupt))(REGS *regs)
         sysblk.intowner = LOCK_OWNER_NONE;
 
         /* Wait while we are STOPPED */
+#if defined(COMPARE_M65)
+        /* A panel pause can arrive during a generated CPU microinstruction.
+           Preserve that call until Start; abandoning it leaves the two CPUs
+           at different instruction boundaries. Reset/restart still use the
+           normal interrupt path. Repeated Stop commands must not resume it. */
+        do {
+            wait_condition (&regs->intcond, &sysblk.intlock);
+        } while (regs->cpustate != CPUSTATE_STARTED && regs->configured
+                 && !regs->sigpireset && !regs->sigpreset
+                 && !IS_IC_RESTART(regs) && !IS_IC_STORSTAT(regs));
+#else
         wait_condition (&regs->intcond, &sysblk.intlock);
+#endif
 
         /* Wait while SYNCHRONIZE_CPUS is in progress */
         while (sysblk.syncing)
@@ -1077,7 +1097,16 @@ void (ATTR_REGPARM(1) ARCH_DEP(process_interrupt))(REGS *regs)
 
         ON_IC_INTERRUPT(regs);
 
+#if defined(COMPARE_M65)
+        int resume_m65 = regs->cpustate == CPUSTATE_STARTED && regs->configured
+            && !regs->sigpireset && !regs->sigpreset
+            && !IS_IC_RESTART(regs) && !IS_IC_STORSTAT(regs);
+#endif
         RELEASE_INTLOCK(regs);
+#if defined(COMPARE_M65)
+        if (resume_m65)
+            return;
+#endif
         longjmp(regs->progjmp, SIE_NO_INTERCEPT);
     } /*CPUSTATE_STOPPED*/
 
@@ -1151,7 +1180,7 @@ void process_memory(REGS* regs) {
                 // write
                 unsigned int wh = read_m65_reg(M65_REG_SE_WDATA_HI);
                 unsigned int wl = read_m65_reg(M65_REG_SE_WDATA_LO);
-#if defined(M65_COMPARE)
+#if defined(COMPARE_M65)
                 record_65_write(sea, wh, wl);
                 if (sea == 0xf0000050) {
                     sysblk.mainstor[0x50] = (wh >> 24) & 255;
@@ -1231,6 +1260,8 @@ int run_single_instruction(REGS * regs) {
     static int d;
     static bool writing;
     static bool cancelled;
+    static bool reported_wait = false;
+    static unsigned int wait_cycles = 0;
     int ic;
     bool ic_set = false;
     bool skip_exit = false;
@@ -1241,10 +1272,39 @@ int run_single_instruction(REGS * regs) {
 #if !defined(SOFTWARE_M65) && !defined(HARDWARE_M65)
         if (z % 100 == 99) {
             if (INTERRUPT_PENDING(regs))
+#if defined(COMPARE_M65)
+            {
+                /* Hercules has fetched this instruction but has not executed
+                   it yet. A normal interrupt-handler return must preserve
+                   its address cache, so Resume does not fetch it twice. */
+                BYTE *saved_aie = regs->aie;
                 ARCH_DEP(process_interrupt)(regs);
+                regs->aie = saved_aie;
+            }
+#else
+                ARCH_DEP(process_interrupt)(regs);
+#endif
         }
 #endif        //        if (z == 10000) exit(1);
         twenty_cycle(regs);
+        /* Console output can precede WTOR setup on this slow model. Expose
+           a settled architectural wait so the operator helper can defer
+           automatic replies until all runnable OS work has completed. */
+        if (newstate.RW.psw_bit.B14 && newstate.RX.rosar.F == 0x784) {
+            if (wait_cycles < 32) wait_cycles++;
+            if (wait_cycles == 32 && !reported_wait) {
+                D_fprintf(lf, "M65WAIT entered ic=%06x\n", newstate.CA.ic.F);
+                fflush(lf);
+                reported_wait = true;
+            }
+        } else {
+            wait_cycles = 0;
+            if (reported_wait) {
+                D_fprintf(lf, "M65WAIT left\n");
+                fflush(lf);
+                reported_wait = false;
+            }
+        }
         if (!ic_set) {
             ic_set = true;
             ic = newstate.CA.ic.F;
@@ -1408,6 +1468,8 @@ lf = fopen("m65.log", "w");
     for (int i = 0; i < 50; i++) {
         twenty_cycle(&regs);
     }
+    D_fprintf(lf, "M65TIMER disable_key=%d clock_enable=%d\n",
+        newstate.PK_PL.disable_timer_key, newstate.KW._disable_time_clock);
     D_fprintf(lf, "\n\nINIT COMPLETE\n\n\n");
 #endif
     if (oldregs)
@@ -1534,7 +1596,9 @@ retry:
         write_compare();
         io_compare();
 #endif
+#if defined(SOFTWARE_M65) || defined(COMPARE_M65)
         fflush(lf);
+#endif
         //if (instnum == 21000)
         //    exit(1);
 
