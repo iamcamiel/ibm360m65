@@ -185,8 +185,10 @@ SECTION WA
   +se counter out[0..1]
 +reg se cmd[29..25](*)
   +in key[0..4](MB)
-+reg se cmd[24..4](*)
++reg se cmd[24..5](*)
   0
++reg se cmd[4](*)
+  +test and set
 +reg se cmd[3](*)
   +cancel
 +reg se cmd[2](*)
@@ -286,6 +288,15 @@ SECTION WA
       NOT
         +do sel
       +store
++test and set
+  OR
+    AND
+      +do sel
+      +test and set(MC)
+    AND
+      NOT
+        +do sel
+      +test and set
 +insert key
   OR
     AND

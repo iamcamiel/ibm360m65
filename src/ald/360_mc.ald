@@ -1822,6 +1822,11 @@ NOCLOCK
   NOT
     -store to mplx bus
 
+; MC181 BU4 -> MC781 driver -> WA001 BF4/BF6
++test and set
+  NOT
+    -test and set
+
 ; PAGE MC791
 
 -ind split log out

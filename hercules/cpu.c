@@ -1176,7 +1176,28 @@ void process_memory(REGS* regs) {
         fflush(lf);
         if (!(sec & 8)) {
             // not cancelled
-            if (sec & 1) {
+            if (sec & 0x10) {
+                // TS returns the original doubleword and sets marked bytes.
+                // The storage unit performs this operation, not the CPU ALDs.
+                unsigned int address = sea & 0x007ffff8;
+                unsigned __int64 data;
+                OBTAIN_MAINLOCK(regs);
+                memcpy(&data, &sysblk.mainstor[address], sizeof(data));
+#if defined(COMPARE_M65)
+                // Native Hercules must still see the original byte for CC.
+                // Record the model's write; native TS updates shared storage.
+                record_65_write(sea, 0xffffffff, 0xffffffff);
+#else
+                for (int i = 0; i < 8; i++) {
+                    if (sea & (0x80000000U >> i))
+                        sysblk.mainstor[address + i] = 0xff;
+                }
+#endif
+                write_m65_reg(M65_REG_SE_RDATA_HI, htonl(data & 0xffffffff));
+                write_m65_reg(M65_REG_SE_RDATA_LO, htonl(data >> 32));
+                RELEASE_MAINLOCK(regs);
+            }
+            else if (sec & 1) {
                 // write
                 unsigned int wh = read_m65_reg(M65_REG_SE_WDATA_HI);
                 unsigned int wl = read_m65_reg(M65_REG_SE_WDATA_LO);
