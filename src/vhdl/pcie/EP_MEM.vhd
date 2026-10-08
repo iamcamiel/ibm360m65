@@ -128,7 +128,9 @@ begin
       destination_data_o => response_snapshot, destination_valid_o => open);
   -- RX must not accept another write until the preceding write reached CPU.
   -- PIO_EP_MEM_ACCESS also includes its write_en edge in wr_busy_o.
-  cdc_busy_o <= response_pending or not response_ready or user_reset(1) or cdc_reset_i;
+  -- user_reset and mailbox readiness already assert asynchronously and
+  -- release locally. Raw cdc_reset_i must not feed PCIe synchronous control.
+  cdc_busy_o <= response_pending or not response_ready or user_reset(1);
   snapshot_ext <= command_snapshot(191 downto 160);
   snapshot_io_cmd <= command_snapshot(159 downto 128);
   snapshot_se_addr <= command_snapshot(127 downto 96);

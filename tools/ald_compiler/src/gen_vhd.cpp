@@ -15,9 +15,18 @@
 // along with this program.If not, see < http://www.gnu.org/licenses/>.
 
 #include "ald_compiler.h"
+#include <regex>
+#include <set>
 
 static int numtemps = 0;
 static int issuedtemps = 0;
+static std::ostream* logic_stream = nullptr;
+static std::map<std::string, std::pair<std::string, std::string>> logic_bodies;
+static std::map<std::string, std::set<std::string>> noclock_signals;
+
+static std::ostream& vhd_stream(const std::string& sec) {
+	return logic_stream ? *logic_stream : sections[sec].vhd_file;
+}
 
 static std::string put_signal_p(std::string sec, SIG1 s) {
 	std::ostringstream oss;
@@ -86,15 +95,15 @@ static void process(std::string sec, std::vector<LINE> lines) {
 		return;
 	if ((rest = getrest(lines[0].line, ";")) != "") {
 		if (lines.size() > 1) error_exit(sec, "No indented lines after comment.", lines);
-		sections[sec].vhd_file << "-- " << rest << "\n";
+		vhd_stream(sec) << "-- " << rest << "\n";
 	}
 	else if ((rest = getrest(lines[0].line, "#")) != "") {
 		if (lines.size() > 1) error_exit(sec, "No indented lines after comment.", lines);
-		sections[sec].vhd_file << "-- " << rest << "\n";
+		vhd_stream(sec) << "-- " << rest << "\n";
 	}
 	else if (lines[0].line == "") {
 		if (lines.size() > 1) error_exit(sec, "No indented lines after blank line.", lines);
-		sections[sec].vhd_file << "\n";
+		vhd_stream(sec) << "\n";
 	}
 	else {
 		if (lines.size() == 1) error_exit(sec, "Multi-line statement expected.", lines);
@@ -201,34 +210,34 @@ continue;
 				}
 				if (l.ident == 0) {
 					if (l.is_signal)
-						sections[sec].vhd_file << "      " + put_signal(sec, output, i) + " <= ";
+						vhd_stream(sec) << "      " + put_signal(sec, output, i) + " <= ";
 					continue;
 				}
 				last_ident = prev_ident;
 				while (l.ident <= last_ident) {
 					if (stack[last_ident] == "ORNOT" || stack[last_ident] == "ANDNOT") {
-						sections[sec].vhd_file << "))";
+						vhd_stream(sec) << "))";
 					} else if (stack[last_ident] != "NOT" && stack[last_ident] != "" && stack[last_ident] != "TEMP") {
-						sections[sec].vhd_file << ")";
+						vhd_stream(sec) << ")";
 					}
 					stack[last_ident] = "";
 					last_ident--;
 				}
 				if (l.ident <= prev_ident) {
 					if (stack[last_ident] == "AND" || stack[last_ident] == "NAND")
-						sections[sec].vhd_file << " and ";
+						vhd_stream(sec) << " and ";
 					else if (stack[last_ident] == "ANDNOT")
-						sections[sec].vhd_file << ") and not (";
+						vhd_stream(sec) << ") and not (";
 					else if (stack[last_ident] == "OR" || stack[last_ident] == "NOR")
-						sections[sec].vhd_file << " or ";
+						vhd_stream(sec) << " or ";
 					else if (stack[last_ident] == "ORNOT")
-						sections[sec].vhd_file << ") or not (";
+						vhd_stream(sec) << ") or not (";
 					else if (stack[last_ident] == "XOR")
-						sections[sec].vhd_file << " xor ";
+						vhd_stream(sec) << " xor ";
 					else if (is_known_word(stack[last_ident]))
 						error_exit(sec, "syntax error in logic expression; no second term expected", lines);
 					else
-						sections[sec].vhd_file << " , ";
+						vhd_stream(sec) << " , ";
 				}
 				if (l.is_signal) {
 					if (l.signal.first.substr(1) == "temp") {
@@ -248,51 +257,51 @@ continue;
 					}
 					if (l.signal.second.length > 1 && output.second.length == 1) {
 						if (!is_known_word(stack[last_ident])) {
-							sections[sec].vhd_file << put_signal(sec, l.signal);
+							vhd_stream(sec) << put_signal(sec, l.signal);
 						}
 						else {
-							sections[sec].vhd_file << put_signal(sec, l.signal, 0);
+							vhd_stream(sec) << put_signal(sec, l.signal, 0);
 							for (int ii = 1; ii < l.signal.second.length; ii++) {
 								if (stack[last_ident] == "AND" || stack[last_ident] == "NAND")
-									sections[sec].vhd_file << " and ";
+									vhd_stream(sec) << " and ";
 								else if (stack[last_ident] == "ANDNOT")
-									sections[sec].vhd_file << ") and not (";
+									vhd_stream(sec) << ") and not (";
 								else if (stack[last_ident] == "OR" || stack[last_ident] == "NOR")
-									sections[sec].vhd_file << " or ";
+									vhd_stream(sec) << " or ";
 								else if (stack[last_ident] == "ORNOT")
-									sections[sec].vhd_file << ") or not (";
+									vhd_stream(sec) << ") or not (";
 								else if (stack[last_ident] == "XOR")
-									sections[sec].vhd_file << " xor ";
+									vhd_stream(sec) << " xor ";
 								else
 									error_exit(sec, "syntax error in logic expression; no second term expected", lines);
-								sections[sec].vhd_file << put_signal(sec, l.signal, ii);
+								vhd_stream(sec) << put_signal(sec, l.signal, ii);
 							}
 						}
 					}
 					else {
-						sections[sec].vhd_file << put_signal(sec, l.signal, i);
+						vhd_stream(sec) << put_signal(sec, l.signal, i);
 					}
 				}
 				else {
 					stack[l.ident] = l.line;
 					if (l.line == "AND" || l.line == "OR" || l.line == "XOR")
-						sections[sec].vhd_file << "(";
+						vhd_stream(sec) << "(";
 					else if (l.line == "ANDNOT" || l.line == "ORNOT")
-						sections[sec].vhd_file << "( not (";
+						vhd_stream(sec) << "( not (";
 					else if (l.line == "NAND" || l.line == "NOR")
-						sections[sec].vhd_file << " not (";
+						vhd_stream(sec) << " not (";
 					else if (l.line == "NOT")
-						sections[sec].vhd_file << " not ";
+						vhd_stream(sec) << " not ";
 					else if (l.line == "0")
-						sections[sec].vhd_file << "('0'";
+						vhd_stream(sec) << "('0'";
 					else if (l.line == "1")
-						sections[sec].vhd_file << "('1'";
+						vhd_stream(sec) << "('1'";
 					else if (l.line == "TD" || l.line == "TD10NS" || l.line == "INT")
-						sections[sec].vhd_file << "(";
+						vhd_stream(sec) << "(";
 					else {
 						if (l.line.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_") != std::string::npos)
 							error_exit(sec, "Illegal function name <" + l.line + ">.", lines);
-						sections[sec].vhd_file << l.line << "(";
+						vhd_stream(sec) << l.line << "(";
 					}
 				}
 				prev_ident = l.ident;
@@ -300,14 +309,14 @@ continue;
 			last_ident = prev_ident;
 			while (0 <= last_ident) {
 				if (stack[last_ident] == "ORNOT" || stack[last_ident] == "ANDNOT") {
-					sections[sec].vhd_file << "))";
+					vhd_stream(sec) << "))";
 				} else if (stack[last_ident] != "NOT" && stack[last_ident] != "" && stack[last_ident] != "TEMP") {
-					sections[sec].vhd_file << ")";
+					vhd_stream(sec) << ")";
 				}
 				stack[last_ident] = "";
 				last_ident--;
 			}
-			sections[sec].vhd_file << ";\n";
+			vhd_stream(sec) << ";\n";
 		}
 	}
 	if (numtemps > issuedtemps) {
@@ -317,6 +326,93 @@ continue;
 }
 
 static int special = 0;
+
+// The C++ model uses two simultaneous NOCLOCK evaluations per CLOCK update.
+// Store the first NOCLOCK evaluation with CLOCK state on the core edge, then
+// evaluate the second from that global snapshot. Cross-section first-pass
+// ports are essential: a second evaluation must never read another section's
+// already-settled output, which would turn a finite pass into a logic loop.
+static void prepare_logic_bodies() {
+	if (!logic_bodies.empty()) return;
+	const std::regex target(R"((\w+)(?:\(\d+\))?\s*<=)");
+	for (auto& section : sections) {
+		std::ostringstream first, clock;
+		logic_stream = &first;
+		process_lines(section.first, process, 1);
+		logic_stream = &clock;
+		process_lines(section.first, process, 2);
+		logic_stream = nullptr;
+		logic_bodies[section.first] = {first.str(), clock.str()};
+		std::string body = first.str();
+		for (std::sregex_iterator i(body.begin(), body.end(), target), end; i != end; ++i)
+			noclock_signals[section.first].insert((*i)[1]);
+	}
+}
+
+static std::string signal_type(const SIGINFO1& signal) {
+	if (!signal.dimensioned) return "STD_LOGIC";
+	return "STD_LOGIC_VECTOR (" + std::to_string(signal.order == -1 ? signal.high : signal.low)
+		+ (signal.order == -1 ? " downto " : " to ")
+		+ std::to_string(signal.order == -1 ? signal.low : signal.high) + ")";
+}
+
+static std::string initial_value(const std::string& name, const SIGINFO1& signal) {
+	char bit = name[0] == '-' ? '1' : '0';
+	if (!signal.dimensioned) return std::string("'") + bit + "'";
+	return "\"" + std::string(signal.length, bit) + "\"";
+}
+
+static std::map<std::string, std::string> second_pass_inputs(const std::string& sec) {
+	std::map<std::string, std::string> inputs;
+	for (const auto& name : noclock_signals[sec]) inputs[name] = name + "_first";
+	for (auto& owner : sections[sec].foreign_signals) {
+		for (auto& signal : owner.second) {
+			std::string name = safename_signal(sec, signal.first, true);
+			if (owner.first == "*") inputs[name] = name + "_sampled";
+			else if (noclock_signals[owner.first].count(name))
+				inputs[owner.first + "_" + name] = owner.first + "_" + name + "_first";
+		}
+	}
+	return inputs;
+}
+
+static std::string replace_inputs(const std::string& expression,
+	const std::map<std::string, std::string>& inputs) {
+	const std::regex identifier(R"(\b[A-Za-z][A-Za-z0-9_]*\b)");
+	std::string output;
+	size_t previous = 0;
+	for (std::sregex_iterator i(expression.begin(), expression.end(), identifier), end; i != end; ++i) {
+		output += expression.substr(previous, i->position() - previous);
+		auto replacement = inputs.find(i->str());
+		output += replacement == inputs.end() ? i->str() : replacement->second;
+		previous = i->position() + i->length();
+	}
+	return output + expression.substr(previous);
+}
+
+static void write_noclock_logic(const std::string& sec, bool second) {
+	const std::regex assignment(R"(^(\s*)(\w+)(\(\d+\))?\s*<=\s*(.*);$)");
+	const auto inputs = second_pass_inputs(sec);
+	std::istringstream body(logic_bodies[sec].first);
+	std::string line;
+	while (std::getline(body, line)) {
+		std::smatch match;
+		if (!std::regex_match(line, match, assignment)) {
+			sections[sec].vhd_file << line << "\n";
+			continue;
+		}
+		std::string name = match[2], index = match[3], expression = match[4];
+		if (!second) {
+			sections[sec].vhd_file << match[1] << name << "_first" << index << " <= " << expression << ";\n";
+		} else {
+			// Output bits reset synchronously through ald_settle_active. External
+			// inputs are sampled on the same edge, so halt freezes this pass too.
+			sections[sec].vhd_file << "  " << name << index << " <= "
+				<< replace_inputs(expression, inputs) << " when ald_settle_active = '1' else "
+				<< (name.substr(0, 2) == "M_" ? "'1'" : "'0'") << ";\n";
+		}
+	}
+}
 
 static void process_special(std::string sec, std::vector<LINE> lines) {
 
@@ -351,6 +447,7 @@ static void process_special(std::string sec, std::vector<LINE> lines) {
 }
 
 void write_vhd_file(std::string sec) {
+	prepare_logic_bodies();
 
 	sections[sec].vhd_file << "library IEEE;\n";
 	sections[sec].vhd_file << "use IEEE.STD_LOGIC_1164.ALL;\n";
@@ -435,6 +532,20 @@ void write_vhd_file(std::string sec) {
 		}
 	}
 
+	for (auto& sig : sections[sec].signals) {
+		std::string name = safename_signal(sec, sig.first, true);
+		if (noclock_signals[sec].count(name) && (sig.second.external_ref || sig.second.basics.external))
+			sections[sec].vhd_file << ";\n    " << name << "_first : buffer " << signal_type(sig.second.basics);
+	}
+	for (auto& owner : sections[sec].foreign_signals) {
+		if (owner.first == "*") continue;
+		for (auto& signal : owner.second) {
+			std::string name = safename_signal(sec, signal.first, true);
+			if (noclock_signals[owner.first].count(name))
+				sections[sec].vhd_file << ";\n    " << owner.first << "_" << name << "_first : in "
+					<< signal_type(sections[owner.first].signals[signal.first].basics);
+		}
+	}
 	sections[sec].vhd_file << "\n  );\n";
 	sections[sec].vhd_file << "end " << sec << ";\n\n";
 
@@ -461,6 +572,18 @@ void write_vhd_file(std::string sec) {
 			sections[sec].vhd_file << "\";\n";
 		}
 	}
+	sections[sec].vhd_file << "  signal ald_settle_active : STD_LOGIC := '0';\n";
+	for (auto& sig : sections[sec].signals) {
+		std::string name = safename_signal(sec, sig.first, true);
+		if (noclock_signals[sec].count(name) && !sig.second.external_ref && !sig.second.basics.external)
+			sections[sec].vhd_file << "  signal " << name << "_first : " << signal_type(sig.second.basics)
+				<< " := " << initial_value(sig.first, sig.second.basics) << ";\n";
+	}
+	for (auto& signal : sections[sec].foreign_signals["*"]) {
+		auto& info = ext_signals[signal.first].basics;
+		sections[sec].vhd_file << "  signal " << safename_signal(sec, signal.first, true)
+			<< "_sampled : " << signal_type(info) << " := " << initial_value(signal.first, info) << ";\n";
+	}
 	sections[sec].vhd_file << "begin\n";
 
 
@@ -468,6 +591,7 @@ void write_vhd_file(std::string sec) {
 	sections[sec].vhd_file << "  begin\n";
 	sections[sec].vhd_file << "    if (rising_edge(clk)) then\n";
 	sections[sec].vhd_file << "      if (rst = '1') then\n";
+	sections[sec].vhd_file << "        ald_settle_active <= '0';\n";
 	for (auto& sig : sections[sec].signals) {
 		if (collapse && sig.second.aliased)
 			continue;
@@ -478,6 +602,7 @@ void write_vhd_file(std::string sec) {
 //		if (sig.second.basics.external)
 //			continue;
 		std::string sn = safename_signal(sec, sig.first, true);
+		if (noclock_signals[sec].count(sn)) sn += "_first";
 		if (!sig.second.basics.dimensioned) {
 			sections[sec].vhd_file << "        " << sn << " <= \'" << ((sig.first[0] == '-') ? "1" : "0") << "\';\n";
 		}
@@ -488,15 +613,23 @@ void write_vhd_file(std::string sec) {
 		}
 	}
 	sections[sec].vhd_file << "      elsif (hlt='0') then\n";
-	process_lines(sec, process, 1);
-	// Both ALD groups advance on each 10 ns core edge. Preserve the group
-	// markers so the Boolean-expression audit can still check classification.
+	sections[sec].vhd_file << "        ald_settle_active <= '1';\n";
+	for (auto& signal : sections[sec].foreign_signals["*"]) {
+		std::string name = safename_signal(sec, signal.first, true);
+		sections[sec].vhd_file << "        " << name << "_sampled <= " << name << ";\n";
+	}
+	sections[sec].vhd_file << "        -- ALD_NOCLOCK_FIRST_BEGIN\n";
+	write_noclock_logic(sec, false);
+	sections[sec].vhd_file << "        -- ALD_NOCLOCK_FIRST_END\n";
 	sections[sec].vhd_file << "        -- ALD_TIMING_BEGIN\n";
-	process_lines(sec, process, 2);
+	sections[sec].vhd_file << logic_bodies[sec].second;
 	sections[sec].vhd_file << "        -- ALD_TIMING_END\n";
 	sections[sec].vhd_file << "      end if;\n";
 	sections[sec].vhd_file << "    end if;\n";
 	sections[sec].vhd_file << "  end process;\n\n";
+	sections[sec].vhd_file << "  -- ALD_NOCLOCK_SECOND_BEGIN\n";
+	write_noclock_logic(sec, true);
+	sections[sec].vhd_file << "  -- ALD_NOCLOCK_SECOND_END\n\n";
 	process_lines(sec, process_special);
 	sections[sec].vhd_file << "end Behavioral;\n";
 
@@ -573,6 +706,14 @@ void write_top_vhd_file(std::string outdir) {
 			}
 		}
 	}
+	for (auto& sec : sections) {
+		for (auto& sig : sec.second.signals) {
+			std::string name = safename_signal(sec.first, sig.first, true);
+			if (noclock_signals[sec.first].count(name) && (sig.second.external_ref || sig.second.basics.external))
+				vhd_file << "  signal " << sec.first << "_" << name << "_first : "
+					<< signal_type(sig.second.basics) << " := " << initial_value(sig.first, sig.second.basics) << ";\n";
+		}
+	}
 	vhd_file << "begin\n";
 
 	for (auto&sec: sections) {
@@ -637,6 +778,19 @@ void write_top_vhd_file(std::string outdir) {
 						}
 					}
 				}
+			}
+		}
+		for (auto& sig : sec.second.signals) {
+			std::string name = safename_signal(sec.first, sig.first, true);
+			if (noclock_signals[sec.first].count(name) && (sig.second.external_ref || sig.second.basics.external))
+				vhd_file << ",\n    " << name << "_first => " << sec.first << "_" << name << "_first";
+		}
+		for (auto& owner : sec.second.foreign_signals) {
+			if (owner.first == "*") continue;
+			for (auto& signal : owner.second) {
+				std::string name = safename_signal(sec.first, signal.first, true);
+				if (noclock_signals[owner.first].count(name))
+					vhd_file << ",\n    " << owner.first << "_" << name << "_first => " << owner.first << "_" << name << "_first";
 			}
 		}
 		vhd_file << "\n  );\n\n";

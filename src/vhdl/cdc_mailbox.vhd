@@ -41,7 +41,10 @@ begin
     end if;
   end process;
 
-  source_ready_o <= '1' when reset_i = '0' and source_reset(1) = '0'
+  -- source_reset asserts asynchronously and releases on source_clk_i.
+  -- Do not gate synchronous readiness with the raw cross-domain reset:
+  -- its deassertion would bypass these two release stages.
+  source_ready_o <= '1' when source_reset(1) = '0'
     and request_toggle = ack_sync else '0';
   destination_data_o <= destination_data;
   destination_valid_o <= destination_valid;
