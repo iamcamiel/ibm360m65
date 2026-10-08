@@ -1,0 +1,21 @@
+SECTION TESTB
+
+NOCLOCK
++stage b
+  OR
+    +stage aa(TESTA)
+    +input[2](*)
++stage bb
+  XOR
+    +stage b
+    +input[3](*)
++result b(*)
+  XOR
+    +stage bb
+    +clock a(TESTA)
+
+CLOCK
++clock b
+  XOR
+    +stage bb
+    +input[1](*)

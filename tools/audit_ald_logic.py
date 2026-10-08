@@ -100,7 +100,14 @@ def audit(directory):
             v_clock_body = vhdl_source.split("if (hclk = '1') then", 1)[1].split('end process;', 1)[0]
         v_clock_body = re.sub(r'--[^\n]*', '', v_clock_body)
         vhdl = re.sub(r'--[^\n]*', '', vhdl_source)
-        body = vhdl.split("elsif (hlt='0') then", 1)[1].split('end process;', 1)[0]
+        if '-- ALD_NOCLOCK_FIRST_BEGIN' in vhdl_source:
+            first_body = vhdl_source.split('-- ALD_NOCLOCK_FIRST_BEGIN', 1)[1].split('-- ALD_NOCLOCK_FIRST_END', 1)[0]
+            # The first-pass registers store the same Boolean equations.
+            # Scheduling and the second snapshot are tested separately.
+            first_body = re.sub(r'(\b\w+)_first(?=\s*(?:\(\d+\))?\s*<=)', r'\1', first_body)
+            body = re.sub(r'--[^\n]*', '', first_body) + v_clock_body
+        else:
+            body = vhdl.split("elsif (hlt='0') then", 1)[1].split('end process;', 1)[0]
         v_clock_targets = {normalize_vhdl(k) for k in re.findall(r'\s+(\w+(?:\(\d+\))?)\s+<=', v_clock_body)}
         v_assignments = dict(re.findall(r'\s+(\w+(?:\(\d+\))?)\s+<=\s+([^;]+);', body))
         v_assignments = {normalize_vhdl(k): v for k, v in v_assignments.items()}

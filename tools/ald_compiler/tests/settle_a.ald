@@ -1,0 +1,36 @@
+SECTION TESTA
+
+NOCLOCK
++stage a
+  XOR
+    +input[0](*)
+    +stage b(TESTB)
++stage aa
+  AND
+    +stage a
+    +gate(*)
++result a(*)
+  XOR
+    +stage aa
+    +clock b(TESTB)
+-result n(*)
+  NAND
+    +stage a
+    +input[1](*)
++alias
+  +stage aa
++vector up[0..3](*)
+  XOR
+    +input[0..3](*)
+    +stage aa
++vector down[3..0](*)
+  NOT
+    +input[0..3](*)
+
+CLOCK
++clock a
+  XOR
+    +stage aa
+    +clock b(TESTB)
++clock result(*)
+  +clock a

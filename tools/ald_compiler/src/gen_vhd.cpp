@@ -346,6 +346,10 @@ static void prepare_logic_bodies() {
 		std::string body = first.str();
 		for (std::sregex_iterator i(body.begin(), body.end(), target), end; i != end; ++i)
 			noclock_signals[section.first].insert((*i)[1]);
+		body = clock.str();
+		for (std::sregex_iterator i(body.begin(), body.end(), target), end; i != end; ++i)
+			if (noclock_signals[section.first].count((*i)[1]))
+				error_exit(section.first, "A signal assigned in both CLOCK and NOCLOCK cannot share a snapshot bank", i->str());
 	}
 }
 

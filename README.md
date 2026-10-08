@@ -2,12 +2,26 @@
 IBM360 Model 65 CPU Emulation
 
 The FPGA core uses a 100 MHz PLL clock derived from the board's 200 MHz input.
-There is no `hclk` enable: every ALD group, delay primitive and CPU memory
-updates on each 10 ns core edge, retaining the 200 ns oscillator cycle and
-10 ns phase spacing. Regenerate VHDL with the updated ALD compiler using `-O1`.
-The C++ emitter is unchanged. `tools/test_nohclk.vhd` checks oscillator and
+There is no `hclk` enable. Each 10 ns rising edge stores the first NOCLOCK pass
+and updates CLOCK state, delay primitives and CPU memories. A second NOCLOCK
+pass evaluates combinationally from that first-pass snapshot, with separate
+first-pass connections between sections. CLOCK logic reads the prior settled
+state. External inputs for the second pass are sampled on the same edge, so
+halt and synchronous reset retain their behavior. Both Boolean passes must
+fit within the 10 ns period; there is no falling-edge update or 5 ns half-cycle
+constraint. The oscillator retains its 200 ns cycle and 10 ns phase spacing.
+Regenerate VHDL with the updated ALD compiler using `-O1`.
+The C++ emitter and its two-pass schedule are unchanged. `tools/test_nohclk.vhd` checks oscillator and
 delay timing, consecutive local-store updates, halt and reset. Whole-CPU
 validation remains a separate check.
+
+`tools/test_ald_settle.py` compares generated VHDL against generated C++ using
+`process_ald()`, `process_ald_clock()`, a state copy and the second
+`process_ald()`. Its 1,024-cycle fixture covers cross-section feedback, vectors,
+aliasing, CLOCK sampling, reset, halt and changes to live external inputs.
+`tools/audit_ald_schedule.py gen/ald` checks all generated second-pass Boolean
+equations and snapshot connections. These checks do not establish full CPU
+equivalence or SPECIAL primitive equivalence to the software model.
 
 The display state machine uses the core clock with a local enable every 512
 edges (5.12 us), preserving its serial scan rate without an internal `dclk`.
@@ -20,6 +34,8 @@ until its response snapshot reaches the CPU, preserving data-before-response
 ordering and byte-enable read-modify-write behavior. Common bridge reset clears
 both ends on PCIe reset/link loss or core clock lock loss; release is synchronized
 in each domain. Panel power-off resets the ALD CPU without clearing host configuration.
+Mailbox readiness and PCIe busy control use those local reset-release stages;
+the raw shared reset does not directly gate synchronous control logic.
 
 The UCF bounds each mailbox data path to 8 ns `DATAPATHONLY`. Exceptions apply
 only to request/acknowledge first-stage inputs and panel/indicator first-stage
