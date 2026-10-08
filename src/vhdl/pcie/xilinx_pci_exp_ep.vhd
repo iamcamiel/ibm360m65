@@ -30,6 +30,7 @@ port  (
   sys_clk_n         : in std_logic;
 
   sys_reset_n       : in std_logic;
+  sys_reset_n_buf_o : out std_logic;
 
 
   refclkout         : out std_logic;
@@ -582,6 +583,7 @@ sys_reset_n_ibuf : IBUF port map (
 
 );
 
+sys_reset_n_buf_o <= sys_reset_n_c;
 trn_reset_n <= trn_reset_n_c;
 trn_lnk_up_n <= trn_lnk_up_n_c;
 

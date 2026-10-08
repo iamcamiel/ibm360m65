@@ -52,14 +52,12 @@ NET led_10(9) LOC="AE24";
 
 NET  CLK_FPGA_N           LOC="K19";   # Bank 3, Vcco=2.5V, No DCI      
 NET  CLK_FPGA_P           LOC="L19";   # Bank 3, Vcco=2.5V, No DCI      
-NET "clk" PERIOD = 5ns;
-NET "hclk"  PERIOD = 10ns;
-# hclk is an ALD clock enable. Allow placement-based register replication
-# to distribute its loads; the consuming registers still use the 5 ns clk.
-NET "hclk" MAX_FANOUT = REDUCE;
-# Distribute the registered ROS address into local control-store logic loads.
-# XST also receives MAX_FANOUT=64 on the generated RX register vector.
-NET "ald/RX/P_temp1203<*>" MAX_FANOUT = REDUCE;
+NET "clk200" PERIOD = 5ns;
+NET "clk" PERIOD = 10ns;
+# Reduce ROS address fanout after placement only on the two baseline offenders.
+# No blanket synthesis MAX_FANOUT limit is applied to the address vector.
+NET "ald/RX/P_temp1203<4>" MAX_FANOUT = REDUCE;
+NET "ald/RX/P_temp1203<7>" MAX_FANOUT = REDUCE;
 NET "dclk" PERIOD = 5120ns;
 
 

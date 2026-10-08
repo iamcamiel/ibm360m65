@@ -1,6 +1,19 @@
 # ibm360m65
 IBM360 Model 65 CPU Emulation
 
+The FPGA core uses a 100 MHz PLL clock derived from the board's 200 MHz input.
+There is no `hclk` enable: every ALD group, delay primitive and CPU memory
+updates on each 10 ns core edge, retaining the 200 ns oscillator cycle and
+10 ns phase spacing. Regenerate VHDL with the updated ALD compiler using `-O1`.
+The C++ emitter is unchanged. `tools/test_nohclk.vhd` checks oscillator and
+delay timing, consecutive local-store updates, halt and reset. Whole-CPU
+validation and the PCIe/display clock crossings remain separate checks.
+
+With the ISE environment loaded, run the timing/memory regression from the
+repository root with `fuse -prj tools/test_nohclk.prj -o test_nohclk.exe test_nohclk`,
+then `./test_nohclk.exe -tclbatch tools/test_nohclk.tcl`. Require
+`NOHCLK_TEST_PASS` and no assertion failures.
+
 The ALD compiler's C++ CPU is used for comparison with Hercules before running
 the generated VHDL on the FPGA. Hercules supplies memory and peripheral devices.
 
@@ -240,8 +253,9 @@ BAR0 keeps its existing CPU register layout and exposes read-only build metadata
 Use the ISE 14.7 environment and run `xtclsh tools/build_fpga.tcl /path/to/ibm360m65`.
 This regenerates the PCIe core, adds its required HDL, fixes the UCF selection,
 and stamps `src/vhdl/pcie/fpga_build.vhd` immediately before synthesis. It also
-applies `MAX_FANOUT=64` to the existing RX ROS address registers after ALD
-generation, with placement-based register duplication enabled in MAP. This
+removes the previous blanket ROS synthesis fanout attribute after ALD generation.
+The UCF requests placement-based fanout reduction only for ROS address bits
+4 and 7, with register duplication enabled in MAP. This
 does not add a pipeline stage or relax the 5 ns clock constraint. For a GUI
 build, first run `xtclsh tools/stamp_fpga_build.tcl /path/to/fpga_build.vhd` and
 `xtclsh tools/distribute_ros_address.tcl /path/to/gen/ald/360_rx.vhd`, then enable

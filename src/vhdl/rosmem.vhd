@@ -17,12 +17,10 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
-USE ieee.std_logic_arith.all;
 
 
 entity ROSMEM is
     Port ( clk_i : in  STD_LOGIC;
-			  hclk : in STD_LOGIC;
 			  rst : in STD_LOGIC;
 			  hlt : in STD_LOGIC;
 	        addr_i : in  STD_LOGIC_VECTOR (0 to 11);
@@ -2862,10 +2860,9 @@ begin
     if (clk_i'event and clk_i = '1') then
 	   if (rst='1') then
 		  data_o <= (others=>'0');
-		elsif (hlt='0' and hclk='1') then
+		elsif (hlt='0') then
   	     data_o <= ros_mem_s(to_integer(unsigned(addr_s)));
 		end if;
 	 end if;
   end process;
 end Behavioral;
-

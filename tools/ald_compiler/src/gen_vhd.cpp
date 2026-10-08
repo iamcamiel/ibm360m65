@@ -326,7 +326,7 @@ static void process_special(std::string sec, std::vector<LINE> lines) {
 		error_exit(sec, "Multi-line statement expected.", lines);
 	SIG1 output;
 	output.second.length = 1;
-	sections[sec].vhd_file << "  SPEC" << ++special << " : entity " << lines[1].line << " port map (clk, hclk, rst, hlt";
+	sections[sec].vhd_file << "  SPEC" << ++special << " : entity work." << lines[1].line << " port map (clk, rst, hlt";
 	for (unsigned int i = 2; i < lines.size(); i++) {
 		LINE& l = lines[i];
 		if (l.line == "IN") {
@@ -359,7 +359,6 @@ void write_vhd_file(std::string sec) {
 	sections[sec].vhd_file << "entity " << sec << " is\n";
 	sections[sec].vhd_file << "  port(\n";
 	sections[sec].vhd_file << "    clk : in STD_LOGIC;\n";
-	sections[sec].vhd_file << "    hclk : in STD_LOGIC;\n";
 	sections[sec].vhd_file << "    rst : in STD_LOGIC;\n";
 	sections[sec].vhd_file << "    hlt : in STD_LOGIC";
 
@@ -490,9 +489,11 @@ void write_vhd_file(std::string sec) {
 	}
 	sections[sec].vhd_file << "      elsif (hlt='0') then\n";
 	process_lines(sec, process, 1);
-	sections[sec].vhd_file << "        if (hclk = '1') then\n";
+	// Both ALD groups advance on each 10 ns core edge. Preserve the group
+	// markers so the Boolean-expression audit can still check classification.
+	sections[sec].vhd_file << "        -- ALD_TIMING_BEGIN\n";
 	process_lines(sec, process, 2);
-	sections[sec].vhd_file << "        end if;\n";
+	sections[sec].vhd_file << "        -- ALD_TIMING_END\n";
 	sections[sec].vhd_file << "      end if;\n";
 	sections[sec].vhd_file << "    end if;\n";
 	sections[sec].vhd_file << "  end process;\n\n";
@@ -513,7 +514,6 @@ void write_top_vhd_file(std::string outdir) {
 	vhd_file << "entity ald is\n";
 	vhd_file << "  port(\n";
 	vhd_file << "    clk : in STD_LOGIC;\n";
-	vhd_file << "    hclk : in STD_LOGIC;\n";
 	vhd_file << "    rst : in STD_LOGIC;\n";
 	vhd_file << "    hlt : in STD_LOGIC";
 
@@ -576,9 +576,9 @@ void write_top_vhd_file(std::string outdir) {
 	vhd_file << "begin\n";
 
 	for (auto&sec: sections) {
-		vhd_file << "  " << sec.first << " : entity " << sec.first << " port map (\n";
+		vhd_file << "  " << sec.first << " : entity work." << sec.first << " port map (\n";
 
-		vhd_file << "    clk => clk,\n    hclk => hclk,\n    rst => rst,\n    hlt => hlt";
+		vhd_file << "    clk => clk,\n    rst => rst,\n    hlt => hlt";
 
 		for (auto& b : sec.second.foreign_signals["*"]) {
 			auto& sig = ext_signals[b.first];

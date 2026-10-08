@@ -47,12 +47,11 @@ end IBM360;
 
 architecture Behavioral of IBM360 is
 	signal clk : STD_LOGIC;
+	signal clk200 : STD_LOGIC;
+	signal core_ready : STD_LOGIC;
+	signal panel_rst : STD_LOGIC;
+	signal sys_reset_n_c : STD_LOGIC;
 	signal dclk : STD_LOGIC;
-	signal hclk : STD_LOGIC;
-	-- Replicate the existing 10 ns enable register rather than adding a
-	-- pipeline stage, which would shift every enabled ALD update by 5 ns.
-	attribute max_fanout : integer;
-	attribute max_fanout of hclk : signal is 64;
 	signal rst : STD_LOGIC;
 	signal hlt : STD_LOGIC;
 	
@@ -71,8 +70,8 @@ architecture Behavioral of IBM360 is
 	signal li4 : STD_LOGIC_VECTOR(0 to 39);
 	signal li5 : STD_LOGIC_VECTOR(0 to 39);
 	signal clock_ctr : integer range 0 to 833333;
-	signal d_ctr : integer range 0 to 511;
-	signal l_ctr : integer range 0 to 20000000;
+	signal d_ctr : integer range 0 to 255;
+	signal l_ctr : integer range 0 to 10000000;
 	signal p60 : STD_LOGIC := '0';
 	signal por : STD_LOGIC := '1';
 
@@ -98,14 +97,14 @@ begin
 		  led_4 <= l_4;
 		  led_10 <= (not l_10(0)) & l_10(1 to 9);
 
-	   if (d_ctr = 511) then
+	   if (d_ctr = 255) then
 		  dclk <= not dclk;
 		  d_ctr <= 0;
 		else
 		  d_ctr <= d_ctr + 1;
 		end if;
 		
-		if (l_ctr = 20000000) then
+		if (l_ctr = 10000000) then
 		  l_4 <= l_4(3) & l_4(0 to 2);
 	     l_ctr <= 0;
 		else
@@ -117,18 +116,16 @@ begin
 		  p60 <= '0';
 		  por <= '1';
 		else
-			hclk <= not hclk;
-			if (hclk = '1') then
-			  if(clock_ctr = 833333) then
-				 clock_ctr <= 1;
-				 p60 <= not p60;
-			  else
-				 clock_ctr <= clock_ctr + 1;
-			  end if;
-			  if (p60 = '1') then
-			    por <= '0';
-			  end if;
-			end if;		
+            -- One ALD update per 10 ns core edge; P60 retains its 60 Hz rate.
+            if (clock_ctr = 833333) then
+                clock_ctr <= 1;
+                p60 <= not p60;
+            else
+                clock_ctr <= clock_ctr + 1;
+            end if;
+            if (p60 = '1') then
+                por <= '0';
+            end if;
 		end if;
 	 end if;
   end process;
@@ -136,7 +133,6 @@ begin
   
   ald : entity ALD port map (
     clk => clk,
-	 hclk => hclk,
 	 rst => rst,
 	 hlt => hlt,
 	 P_P60_cycles_from_transformer => p60,
@@ -196,7 +192,7 @@ begin
 	 
 	 configured => P_reg_se_size(0),
 	 
-	 power_off => rst
+	 power_off => panel_rst
   );
   
   pcie : entity XILINX_PCI_EXP_EP port map (
@@ -207,6 +203,7 @@ begin
 		sys_clk_p => sys_clk_p,
 		sys_clk_n => sys_clk_n,
 		sys_reset_n => sys_reset_n,
+		sys_reset_n_buf_o => sys_reset_n_c,
 		
     P_reg_io_int => P_reg_io_int,
 	 P_reg_io_resp => P_reg_io_resp,
@@ -227,10 +224,16 @@ begin
   );
 
 	fpgaclk_ibuf: ibufds port map (
-		 o => clk,
+		 o => clk200,
 		 i => clk_fpga_p,
 		 ib => clk_fpga_n
 	);
+
+  core_clock : entity work.CORE_CLOCK100 port map (
+    clk200_i => clk200, reset_i => not sys_reset_n_c,
+    clk100_o => clk, ready_o => core_ready
+  );
+  rst <= panel_rst or not core_ready;
 
   l_10(2) <= P_reg_se_size(0);	-- host configures
   l_10(3) <= not rst;				-- power on
