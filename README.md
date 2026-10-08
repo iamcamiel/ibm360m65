@@ -47,7 +47,11 @@ unverified; a simulation pass alone does not establish board timing closure.
 `tools/test_pcie_cdc.vhd` exercises the production register and write controller
 with unrelated clocks, byte enables, sequence-counter ordering, a stopped CPU
 clock, and reset during a transfer. `tools/test_display_clock.vhd` checks scan
-timing, switch/lamp bit order, power control and reset. With ISE loaded, compile
+timing, switch/lamp bit order, power control and reset. With ISE 14.7 loaded, run
+these commands from the repository root. ISim resolves source paths inside a
+`.prj` relative to that project file's directory, so `../src/...` entries in
+`tools/*.prj` refer to this repository's `src/`. Executable and Tcl batch paths
+in these commands are relative to the working directory. Compile
 each using `fuse -prj tools/test_pcie_cdc.prj -o test_pcie_cdc.exe test_pcie_cdc`
 and the corresponding `test_display_clock` project, then run its matching Tcl
 batch file. Require `PCIE_CDC_TEST_PASS` / `DISPLAY_CLOCK_TEST_PASS` and no failures.
