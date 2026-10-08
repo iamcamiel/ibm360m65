@@ -49,6 +49,10 @@ architecture Behavioral of IBM360 is
 	signal clk : STD_LOGIC;
 	signal dclk : STD_LOGIC;
 	signal hclk : STD_LOGIC;
+	-- Replicate the existing 10 ns enable register rather than adding a
+	-- pipeline stage, which would shift every enabled ALD update by 5 ns.
+	attribute max_fanout : integer;
+	attribute max_fanout of hclk : signal is 64;
 	signal rst : STD_LOGIC;
 	signal hlt : STD_LOGIC;
 	

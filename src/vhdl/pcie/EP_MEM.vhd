@@ -16,6 +16,7 @@
 
 library ieee;
 use ieee.std_logic_1164.all;
+use work.fpga_build.all;
 
 library unisim;
 use unisim.vcomponents.all;
@@ -84,7 +85,11 @@ begin
 				when "000001010" => a_rd_d_o_0 <= P_reg_se_rdata_lo;
 				when "000001011" => a_rd_d_o_0 <= P_reg_se_wdata_hi;
 				when "000001100" => a_rd_d_o_0 <= P_reg_se_wdata_lo;
-				when others => a_rd_d_o_0 <= "00000000000000010000000000000001"; -- VERSION 1.1
+				when "111111011" => a_rd_d_o_0 <= M65_BUILD_MAGIC; -- BAR0 0x7EC
+				when "111111100" => a_rd_d_o_0 <= M65_BUILD_TIME; -- BAR0 0x7F0
+				when "111111101" => a_rd_d_o_0 <= M65_BUILD_DATE; -- BAR0 0x7F4
+				when "111111110" => a_rd_d_o_0 <= M65_FPGA_VERSION; -- BAR0 0x7F8
+				when others => a_rd_d_o_0 <= M65_INTERFACE_VERSION; -- BAR0 0x7FC, legacy aliases
 			end case;
 			case (b_wr_a_i_0(8 downto 0)) is 
 				when "000000000" => b_rd_d_o_0 <= "00000011011000000010000001100101";
@@ -100,7 +105,11 @@ begin
 				when "000001010" => b_rd_d_o_0 <= P_reg_se_rdata_lo;
 				when "000001011" => b_rd_d_o_0 <= P_reg_se_wdata_hi;
 				when "000001100" => b_rd_d_o_0 <= P_reg_se_wdata_lo;
-				when others => b_rd_d_o_0 <= "00000000000000010000000000000001";
+				when "111111011" => b_rd_d_o_0 <= M65_BUILD_MAGIC;
+				when "111111100" => b_rd_d_o_0 <= M65_BUILD_TIME;
+				when "111111101" => b_rd_d_o_0 <= M65_BUILD_DATE;
+				when "111111110" => b_rd_d_o_0 <= M65_FPGA_VERSION;
+				when others => b_rd_d_o_0 <= M65_INTERFACE_VERSION;
 			end case;
 			if (b_wr_en_i_0 = '1') then
 				case (b_wr_a_i_0(8 downto 0)) is 

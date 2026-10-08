@@ -22,6 +22,10 @@
 
 DLL_EXPORT SYSBLK sysblk;
 
+#if defined(HARDWARE_M65)
+DLL_EXPORT volatile unsigned int* m65_register_map = 0;
+#endif
+
 #if defined(EXTERNALGUI)
 DLL_EXPORT int extgui = 0;
 #endif

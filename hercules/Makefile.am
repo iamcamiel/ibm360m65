@@ -711,6 +711,7 @@ noinst_HEADERS = fishhang.h     \
                  opcode.h       \
                  clock.h        \
                  hercules.h     \
+                 m65_fpga_version.h \
                  inline.h       \
                  dat.h          \
                  vstore.h       \

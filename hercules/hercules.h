@@ -232,7 +232,11 @@ inline unsigned int read_m65_reg(int regno) {
 }
 #endif
 #if defined(HARDWARE_M65)
-unsigned int* m65_register_map = 0;
+#include <fcntl.h>
+#include <sys/mman.h>
+#include <unistd.h>
+#include "m65_fpga_version.h"
+extern volatile unsigned int* m65_register_map;
 inline void init_m65_reg();
 
 inline void write_m65_reg(int regno, unsigned int content) {
@@ -248,38 +252,39 @@ inline unsigned int read_m65_reg(int regno) {
 }
 
 inline void init_m65_reg() {
-    int fp;
+    FILE* fp;
     char line[1000];
-    char devnam[1100];
+    char devnam[1100] = {0};
     char enanam[1200];
     char resnam[1200];
 
     sprintf(line, "lspci -d 0360:2065 -nn");
     fp = popen(line, "r");
     if (!fp) {
-        D_fprintf("Could not run command <%s>\n",line);
+        logmsg("Could not run command <%s>\n",line);
         exit(-1);
     }
     while (fgets(line, sizeof(line), fp)) {
         if (strstr(line,"0360:2065") && !devnam[0]) {
-            D_fprintf("Found CPU: %s", line);
+            logmsg("Found CPU: %s", line);
             *strchr(line, ' ') = 0;
             sprintf(devnam, "/sys/bus/pci/devices/0000:%s", line);
             sprintf(enanam, "%s/enable", devnam);
             sprintf(resnam, "%s/resource0", devnam);
+        }
     }
     pclose(fp);
 
     if (!devnam[0]) {
-        D_fprintf("No CPU found.\n");
+        logmsg("No CPU found.\n");
         exit(-1);
     }
 
-    D_fprintf("Going to open %s\n", devnam);
+    logmsg("Going to open %s\n", devnam);
 
     fp = fopen(enanam, "w");
     if (!fp) {
-        D_fprintf("Can't open device <%s>\n", enanam);
+        logmsg("Can't open device <%s>\n", enanam);
         exit(-1);
     }
     fprintf(fp, "1");
@@ -288,7 +293,7 @@ inline void init_m65_reg() {
     sprintf(line, "setpci -d 0360:2065 COMMAND=402");
     fp = popen(line, "r");
     if (!fp) {
-        D_fprintf("Could not run command <%s>\n", line);
+        logmsg("Could not run command <%s>\n", line);
         exit(-1);
     }
     while (fgets(line, sizeof(line), fp));
@@ -296,26 +301,35 @@ inline void init_m65_reg() {
 
     int fd = open(resnam, O_RDWR | O_SYNC);
     if (fd == -1) {
-        D_fprintf("Can't open <%s>.\n",resnam);
+        logmsg("Can't open <%s>.\n",resnam);
         exit(-1);
     }
-    unsigned int* mm = mmap(0, 2048, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-    if (mm == 0 || mm == -1) {
-        D_fprintf("Can't map PCIe registers.\n");
+    volatile unsigned int* mm = (volatile unsigned int*)mmap(0, 2048, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+    close(fd);
+    if (mm == MAP_FAILED) {
+        logmsg("Can't map PCIe registers.\n");
         exit(-1);
     }
     if (mm[M65_REG_ID] != 0x03602065) {
-        D_fprintf("Device signature is incorrect: <%08x>, expected <%08x>", mm[0], 0x03602065);
+        logmsg("Device signature is incorrect: <%08x>, expected <%08x>\n", mm[0], 0x03602065);
         exit(-1);
     }
     int maj = mm[M65_REG_VER] >> 16;
     int min = mm[M65_REG_VER] & 0xffff;
-    if (maj != 1) {
-        D_fprintf("CPU version %d.%d is incompatible with this version of Hercules. Major version 1 expected.\n",maj,min);
+    unsigned int revision = mm[M65_REG_FPGA_VER];
+    unsigned int date = mm[M65_REG_BUILD_DATE];
+    unsigned int time = mm[M65_REG_BUILD_TIME];
+    const char* compatibility_error = m65_fpga_compatibility_error(
+        mm[M65_REG_VER], mm[M65_REG_BUILD_MAGIC], revision, date, time);
+    if (compatibility_error) {
+        logmsg("M65 FPGA rejected: %s (interface %d.%d, FPGA %u.%u, build %08x %06x UTC).\n",
+            compatibility_error, maj, min, revision >> 16, revision & 65535U, date, time);
+        munmap((void*)mm, 2048);
         exit(-1);
     }
 
-    D_fprintf("IBM 360 model 65 CPU successfully initialized. CPU version %d.%d found.\n",maj,min)
+    logmsg("IBM 360 model 65 CPU initialized: interface %d.%d, FPGA %u.%u, build %08x %06x UTC.\n",
+        maj, min, revision >> 16, revision & 65535U, date, time);
     m65_register_map = mm;
 }
 
