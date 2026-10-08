@@ -7,7 +7,38 @@ updates on each 10 ns core edge, retaining the 200 ns oscillator cycle and
 10 ns phase spacing. Regenerate VHDL with the updated ALD compiler using `-O1`.
 The C++ emitter is unchanged. `tools/test_nohclk.vhd` checks oscillator and
 delay timing, consecutive local-store updates, halt and reset. Whole-CPU
-validation and the PCIe/display clock crossings remain separate checks.
+validation remains a separate check.
+
+The display state machine uses the core clock with a local enable every 512
+edges (5.12 us), preserving its serial scan rate without an internal `dclk`.
+External panel inputs pass through two synchronizer stages before sampling.
+PCIe still uses its independent 62.5 MHz transaction clock. `CDC_MAILBOX`
+transfers complete 192-bit register snapshots with request/acknowledge toggles,
+two-stage control synchronizers, and an extra capture edge. CPU command bundles
+must settle for two core edges before publication. Each BAR write remains busy
+until its response snapshot reaches the CPU, preserving data-before-response
+ordering and byte-enable read-modify-write behavior. Common bridge reset clears
+both ends on PCIe reset/link loss or core clock lock loss; release is synchronized
+in each domain. Panel power-off resets the ALD CPU without clearing host configuration.
+
+The UCF bounds each mailbox data path to 8 ns `DATAPATHONLY`. Exceptions apply
+only to request/acknowledge first-stage inputs and panel/indicator first-stage
+synchronizers; there is no blanket exception between CPU and PCIe clocks.
+Routing must confirm that these groups exist and every data bound passes.
+External panel/LED timing requirements and whole-CPU hardware validation remain
+unverified; a simulation pass alone does not establish board timing closure.
+
+`tools/test_pcie_cdc.vhd` exercises the production register and write controller
+with unrelated clocks, byte enables, sequence-counter ordering, a stopped CPU
+clock, and reset during a transfer. `tools/test_display_clock.vhd` checks scan
+timing, switch/lamp bit order, power control and reset. With ISE loaded, compile
+each using `fuse -prj tools/test_pcie_cdc.prj -o test_pcie_cdc.exe test_pcie_cdc`
+and the corresponding `test_display_clock` project, then run its matching Tcl
+batch file. Require `PCIE_CDC_TEST_PASS` / `DISPLAY_CLOCK_TEST_PASS` and no failures.
+`tools/test_pcie_tlp_cdc.prj` additionally uses the generated PCIe RX/TX engines
+and the entire production PIO stack to check packet-level backpressure and
+ordered BAR writes; require `PCIE_TLP_CDC_TEST_PASS`. Generate the PCIe IP first
+if its example-design HDL is absent from `xise/ipcore_dir`.
 
 With the ISE environment loaded, run the timing/memory regression from the
 repository root with `fuse -prj tools/test_nohclk.prj -o test_nohclk.exe test_nohclk`,
@@ -256,7 +287,7 @@ and stamps `src/vhdl/pcie/fpga_build.vhd` immediately before synthesis. It also
 removes the previous blanket ROS synthesis fanout attribute after ALD generation.
 The UCF requests placement-based fanout reduction only for ROS address bits
 4 and 7, with register duplication enabled in MAP. This
-does not add a pipeline stage or relax the 5 ns clock constraint. For a GUI
+does not add a pipeline stage or relax the 10 ns core clock constraint. For a GUI
 build, first run `xtclsh tools/stamp_fpga_build.tcl /path/to/fpga_build.vhd` and
 `xtclsh tools/distribute_ros_address.tcl /path/to/gen/ald/360_rx.vhd`, then enable
 register duplication in XST and MAP.

@@ -51,7 +51,9 @@ architecture Behavioral of IBM360 is
 	signal core_ready : STD_LOGIC;
 	signal panel_rst : STD_LOGIC;
 	signal sys_reset_n_c : STD_LOGIC;
-	signal dclk : STD_LOGIC;
+	signal display_enable, display_reset : STD_LOGIC;
+	signal pcie_reset_status, pcie_link_status : STD_LOGIC;
+	signal pcie_status_meta, pcie_status_sync : STD_LOGIC_VECTOR(1 downto 0) := "00";
 	signal rst : STD_LOGIC;
 	signal hlt : STD_LOGIC;
 	
@@ -70,7 +72,7 @@ architecture Behavioral of IBM360 is
 	signal li4 : STD_LOGIC_VECTOR(0 to 39);
 	signal li5 : STD_LOGIC_VECTOR(0 to 39);
 	signal clock_ctr : integer range 0 to 833333;
-	signal d_ctr : integer range 0 to 255;
+	signal d_ctr : integer range 0 to 511 := 255;
 	signal l_ctr : integer range 0 to 10000000;
 	signal p60 : STD_LOGIC := '0';
 	signal por : STD_LOGIC := '1';
@@ -90,15 +92,24 @@ architecture Behavioral of IBM360 is
 	signal l_4 : STD_LOGIC_VECTOR(0 to 3) := "1000";
 	signal l_10: STD_LOGIC_VECTOR(0 to 9) := "0000000000";
 	signal l_10_d : STD_LOGIC := '0';
+  attribute ASYNC_REG : string;
+  attribute SHREG_EXTRACT : string;
+  attribute ASYNC_REG of pcie_status_meta, pcie_status_sync : signal is "TRUE";
+  attribute SHREG_EXTRACT of pcie_status_meta, pcie_status_sync : signal is "NO";
 begin
+  display_reset <= not core_ready;
+  display_enable <= '1' when d_ctr = 511 and core_ready = '1' else '0';
+  l_10(0) <= pcie_status_sync(0);
+  l_10(1) <= pcie_status_sync(1);
   process (clk)
   begin
     if (clk'event and clk = '1') then
 		  led_4 <= l_4;
 		  led_10 <= (not l_10(0)) & l_10(1 to 9);
 
-	   if (d_ctr = 255) then
-		  dclk <= not dclk;
+	   if core_ready = '0' then
+          d_ctr <= 255;
+        elsif (d_ctr = 511) then
 		  d_ctr <= 0;
 		else
 		  d_ctr <= d_ctr + 1;
@@ -129,8 +140,18 @@ begin
 		end if;
 	 end if;
   end process;
-  
-  
+
+  -- PCIe status used only for indicators; synchronize before CPU-clock sampling.
+  process(clk, core_ready)
+  begin
+    if core_ready = '0' then
+      pcie_status_meta <= "00"; pcie_status_sync <= "00";
+    elsif rising_edge(clk) then
+      pcie_status_meta <= pcie_link_status & pcie_reset_status;
+      pcie_status_sync <= pcie_status_meta;
+    end if;
+  end process;
+
   ald : entity ALD port map (
     clk => clk,
 	 rst => rst,
@@ -167,7 +188,7 @@ begin
   );
   
   blinken : entity BLINKEN port map (
-    clk => dclk,
+    clk => clk, rst_i => display_reset, enable_i => display_enable,
 	 
 	 disp_clk_o => disp_clk_o,
 	 disp_latch_n_o => disp_latch_n_o,
@@ -196,6 +217,7 @@ begin
   );
   
   pcie : entity XILINX_PCI_EXP_EP port map (
+    core_clk_i => clk, core_ready_i => core_ready,
 		pci_exp_txp(0) => pci_exp_txp,
 		pci_exp_txn(0) => pci_exp_txn,
 		pci_exp_rxp(0) => pci_exp_rxp,
@@ -219,8 +241,8 @@ begin
 	 P_reg_se_wdata_hi => P_reg_se_wdata_hi,
 	 P_reg_se_wdata_lo => P_reg_se_wdata_lo,
 
-	 trn_reset_n => l_10(0),
-	 trn_lnk_up_n => l_10(1)
+	 trn_reset_n => pcie_reset_status,
+	 trn_lnk_up_n => pcie_link_status
   );
 
 	fpgaclk_ibuf: ibufds port map (

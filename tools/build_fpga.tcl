@@ -25,6 +25,7 @@ proc add_source {path} {
 project open $project_path
 add_source $root/src/vhdl/pcie/fpga_build.vhd
 add_source $root/src/vhdl/core_clock100.vhd
+add_source $root/src/vhdl/cdc_mailbox.vhd
 foreach path [glob $root/xise/ipcore_dir/endpoint_blk_plus_v1_15/source/*.v] { add_source $path }
 foreach name {PIO_TO_CTRL PIO_64_RX_ENGINE PIO_64_TX_ENGINE} {
     add_source $root/xise/ipcore_dir/endpoint_blk_plus_v1_15/example_design/$name.vhd

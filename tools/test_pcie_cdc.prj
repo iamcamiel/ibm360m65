@@ -1,0 +1,5 @@
+vhdl work "../src/vhdl/cdc_mailbox.vhd"
+vhdl work "../src/vhdl/pcie/fpga_build.vhd"
+vhdl work "../src/vhdl/pcie/EP_MEM.vhd"
+vhdl work "../src/vhdl/pcie/PIO_EP_MEM_ACCESS.vhd"
+vhdl work "test_pcie_cdc.vhd"

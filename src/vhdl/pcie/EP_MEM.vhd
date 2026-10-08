@@ -18,12 +18,11 @@ library ieee;
 use ieee.std_logic_1164.all;
 use work.fpga_build.all;
 
-library unisim;
-use unisim.vcomponents.all;
-
 entity EP_MEM is port (
 
-  clk_i : in std_logic ;
+  clk_i : in std_logic;
+  core_clk_i, cdc_reset_i : in std_logic;
+  cdc_busy_o : out std_logic;
 
   a_rd_a_i_0 : in std_logic_vector(8 downto 0);
   a_rd_d_o_0 : out std_logic_vector(31 downto 0);
@@ -53,7 +52,95 @@ end EP_MEM;
 
 architecture rtl of EP_MEM is
 
+  -- BAR writes live in the PCIe domain; CPU inputs are coherent snapshots.
+  signal cpu_payload, cpu_previous, command_snapshot : std_logic_vector(191 downto 0) := (others => '0');
+  signal response_payload, response_snapshot : std_logic_vector(191 downto 0);
+  signal command_valid, response_pending : std_logic := '0';
+  signal response_ready : std_logic;
+  signal stable_edges : integer range 0 to 2 := 0;
+  signal user_reset : std_logic_vector(1 downto 0) := "11";
+  signal cpu_reset : std_logic_vector(1 downto 0) := "11";
+  attribute ASYNC_REG : string;
+  attribute SHREG_EXTRACT : string;
+  attribute ASYNC_REG of user_reset, cpu_reset : signal is "TRUE";
+  attribute SHREG_EXTRACT of user_reset, cpu_reset : signal is "NO";
+  signal pci_io_int : std_logic_vector(31 downto 0) := (others => '0');
+  signal pci_io_resp : std_logic_vector(31 downto 0) := (others => '0');
+  signal pci_se_rdata_hi : std_logic_vector(31 downto 0) := (others => '0');
+  signal pci_se_rdata_lo : std_logic_vector(31 downto 0) := (others => '0');
+  signal pci_se_resp : std_logic_vector(31 downto 0) := (others => '0');
+  signal pci_se_size : std_logic_vector(31 downto 0) := (others => '0');
+  signal snapshot_ext : std_logic_vector(31 downto 0);
+  signal snapshot_io_cmd : std_logic_vector(31 downto 0);
+  signal snapshot_se_addr : std_logic_vector(31 downto 0);
+  signal snapshot_se_cmd : std_logic_vector(31 downto 0);
+  signal snapshot_se_wdata_hi : std_logic_vector(31 downto 0);
+  signal snapshot_se_wdata_lo : std_logic_vector(31 downto 0);
+
 begin
+
+  process(clk_i, cdc_reset_i)
+  begin
+    if cdc_reset_i = '1' then user_reset <= "11";
+    elsif rising_edge(clk_i) then user_reset <= user_reset(0) & '0';
+    end if;
+  end process;
+
+  process(core_clk_i, cdc_reset_i)
+  begin
+    if cdc_reset_i = '1' then cpu_reset <= "11";
+    elsif rising_edge(core_clk_i) then cpu_reset <= cpu_reset(0) & '0';
+    end if;
+  end process;
+
+  -- WA is registered but related outputs can settle on adjacent core edges.
+  -- Publish only after the whole bundle has been unchanged for two edges.
+  cpu_payload <= P_reg_ext & P_reg_io_cmd & P_reg_se_addr & P_reg_se_cmd &
+                 P_reg_se_wdata_hi & P_reg_se_wdata_lo;
+  process(core_clk_i, cdc_reset_i)
+  begin
+    if cdc_reset_i = '1' then
+      cpu_previous <= (others => '0'); stable_edges <= 0;
+    elsif rising_edge(core_clk_i) then
+      if cpu_reset(1) = '1' then
+        cpu_previous <= (others => '0'); stable_edges <= 0;
+      else
+        cpu_previous <= cpu_payload;
+        if cpu_payload /= cpu_previous then stable_edges <= 0;
+        elsif stable_edges < 2 then stable_edges <= stable_edges + 1;
+        end if;
+      end if;
+    end if;
+  end process;
+  command_valid <= '1' when stable_edges = 2 and cpu_payload = cpu_previous else '0';
+  cpu_to_pcie : entity work.CDC_MAILBOX generic map (WIDTH => 192)
+    port map (source_clk_i => core_clk_i, destination_clk_i => clk_i,
+      reset_i => cdc_reset_i, source_data_i => cpu_payload,
+      source_valid_i => command_valid, source_ready_o => open,
+      destination_data_o => command_snapshot, destination_valid_o => open);
+
+  response_payload <= pci_io_int & pci_io_resp & pci_se_rdata_hi &
+                      pci_se_rdata_lo & pci_se_resp & pci_se_size;
+  pcie_to_cpu : entity work.CDC_MAILBOX generic map (WIDTH => 192)
+    port map (source_clk_i => clk_i, destination_clk_i => core_clk_i,
+      reset_i => cdc_reset_i, source_data_i => response_payload,
+      source_valid_i => response_pending, source_ready_o => response_ready,
+      destination_data_o => response_snapshot, destination_valid_o => open);
+  -- RX must not accept another write until the preceding write reached CPU.
+  -- PIO_EP_MEM_ACCESS also includes its write_en edge in wr_busy_o.
+  cdc_busy_o <= response_pending or not response_ready or user_reset(1) or cdc_reset_i;
+  snapshot_ext <= command_snapshot(191 downto 160);
+  snapshot_io_cmd <= command_snapshot(159 downto 128);
+  snapshot_se_addr <= command_snapshot(127 downto 96);
+  snapshot_se_cmd <= command_snapshot(95 downto 64);
+  snapshot_se_wdata_hi <= command_snapshot(63 downto 32);
+  snapshot_se_wdata_lo <= command_snapshot(31 downto 0);
+  P_reg_io_int <= response_snapshot(191 downto 160);
+  P_reg_io_resp <= response_snapshot(159 downto 128);
+  P_reg_se_rdata_hi <= response_snapshot(127 downto 96);
+  P_reg_se_rdata_lo <= response_snapshot(95 downto 64);
+  P_reg_se_resp <= response_snapshot(63 downto 32);
+  P_reg_se_size <= response_snapshot(31 downto 0);
 
 --#define M65_REG_CFG 0
 --#define M65_REG_EXT 1
@@ -68,23 +155,44 @@ begin
 --#define M65_REG_SE_WDATA_HI 10
 --#define M65_REG_SE_WDATA_LO 11
 
-	process (clk_i)
+	process (clk_i, cdc_reset_i)
 	begin
-		if (rising_edge(clk_i)) then
+        if cdc_reset_i = '1' then
+            response_pending <= '0';
+            a_rd_d_o_0 <= (others => '0'); b_rd_d_o_0 <= (others => '0');
+            pci_io_int <= (others => '0');
+            pci_io_resp <= (others => '0');
+            pci_se_rdata_hi <= (others => '0');
+            pci_se_rdata_lo <= (others => '0');
+            pci_se_resp <= (others => '0');
+            pci_se_size <= (others => '0');
+        elsif rising_edge(clk_i) then
+          if user_reset(1) = '1' then
+            response_pending <= '0';
+            pci_io_int <= (others => '0');
+            pci_io_resp <= (others => '0');
+            pci_se_rdata_hi <= (others => '0');
+            pci_se_rdata_lo <= (others => '0');
+            pci_se_resp <= (others => '0');
+            pci_se_size <= (others => '0');
+          else
+            if response_pending = '1' and response_ready = '1' then
+              response_pending <= '0';
+            end if;
 			case (a_rd_a_i_0(8 downto 0)) is 
 				when "000000000" => a_rd_d_o_0 <= "00000011011000000010000001100101"; -- 03602065
-				when "000000001" => a_rd_d_o_0 <= P_reg_se_size;
-				when "000000010" => a_rd_d_o_0 <= P_reg_ext;
-				when "000000011" => a_rd_d_o_0 <= P_reg_io_cmd;
-				when "000000100" => a_rd_d_o_0 <= P_reg_io_resp;
-				when "000000101" => a_rd_d_o_0 <= P_reg_io_int;
-				when "000000110" => a_rd_d_o_0 <= P_reg_se_cmd;
-				when "000000111" => a_rd_d_o_0 <= P_reg_se_addr;
-				when "000001000" => a_rd_d_o_0 <= P_reg_se_resp;
-				when "000001001" => a_rd_d_o_0 <= P_reg_se_rdata_hi;
-				when "000001010" => a_rd_d_o_0 <= P_reg_se_rdata_lo;
-				when "000001011" => a_rd_d_o_0 <= P_reg_se_wdata_hi;
-				when "000001100" => a_rd_d_o_0 <= P_reg_se_wdata_lo;
+				when "000000001" => a_rd_d_o_0 <= pci_se_size;
+				when "000000010" => a_rd_d_o_0 <= snapshot_ext;
+				when "000000011" => a_rd_d_o_0 <= snapshot_io_cmd;
+				when "000000100" => a_rd_d_o_0 <= pci_io_resp;
+				when "000000101" => a_rd_d_o_0 <= pci_io_int;
+				when "000000110" => a_rd_d_o_0 <= snapshot_se_cmd;
+				when "000000111" => a_rd_d_o_0 <= snapshot_se_addr;
+				when "000001000" => a_rd_d_o_0 <= pci_se_resp;
+				when "000001001" => a_rd_d_o_0 <= pci_se_rdata_hi;
+				when "000001010" => a_rd_d_o_0 <= pci_se_rdata_lo;
+				when "000001011" => a_rd_d_o_0 <= snapshot_se_wdata_hi;
+				when "000001100" => a_rd_d_o_0 <= snapshot_se_wdata_lo;
 				when "111111011" => a_rd_d_o_0 <= M65_BUILD_MAGIC; -- BAR0 0x7EC
 				when "111111100" => a_rd_d_o_0 <= M65_BUILD_TIME; -- BAR0 0x7F0
 				when "111111101" => a_rd_d_o_0 <= M65_BUILD_DATE; -- BAR0 0x7F4
@@ -93,35 +201,40 @@ begin
 			end case;
 			case (b_wr_a_i_0(8 downto 0)) is 
 				when "000000000" => b_rd_d_o_0 <= "00000011011000000010000001100101";
-				when "000000001" => b_rd_d_o_0 <= P_reg_se_size;
-				when "000000010" => b_rd_d_o_0 <= P_reg_ext;
-				when "000000011" => b_rd_d_o_0 <= P_reg_io_cmd;
-				when "000000100" => b_rd_d_o_0 <= P_reg_io_resp;
-				when "000000101" => b_rd_d_o_0 <= P_reg_io_int;
-				when "000000110" => b_rd_d_o_0 <= P_reg_se_cmd;
-				when "000000111" => b_rd_d_o_0 <= P_reg_se_addr;
-				when "000001000" => b_rd_d_o_0 <= P_reg_se_resp;
-				when "000001001" => b_rd_d_o_0 <= P_reg_se_rdata_hi;
-				when "000001010" => b_rd_d_o_0 <= P_reg_se_rdata_lo;
-				when "000001011" => b_rd_d_o_0 <= P_reg_se_wdata_hi;
-				when "000001100" => b_rd_d_o_0 <= P_reg_se_wdata_lo;
+				when "000000001" => b_rd_d_o_0 <= pci_se_size;
+				when "000000010" => b_rd_d_o_0 <= snapshot_ext;
+				when "000000011" => b_rd_d_o_0 <= snapshot_io_cmd;
+				when "000000100" => b_rd_d_o_0 <= pci_io_resp;
+				when "000000101" => b_rd_d_o_0 <= pci_io_int;
+				when "000000110" => b_rd_d_o_0 <= snapshot_se_cmd;
+				when "000000111" => b_rd_d_o_0 <= snapshot_se_addr;
+				when "000001000" => b_rd_d_o_0 <= pci_se_resp;
+				when "000001001" => b_rd_d_o_0 <= pci_se_rdata_hi;
+				when "000001010" => b_rd_d_o_0 <= pci_se_rdata_lo;
+				when "000001011" => b_rd_d_o_0 <= snapshot_se_wdata_hi;
+				when "000001100" => b_rd_d_o_0 <= snapshot_se_wdata_lo;
 				when "111111011" => b_rd_d_o_0 <= M65_BUILD_MAGIC;
 				when "111111100" => b_rd_d_o_0 <= M65_BUILD_TIME;
 				when "111111101" => b_rd_d_o_0 <= M65_BUILD_DATE;
 				when "111111110" => b_rd_d_o_0 <= M65_FPGA_VERSION;
 				when others => b_rd_d_o_0 <= M65_INTERFACE_VERSION;
 			end case;
-			if (b_wr_en_i_0 = '1') then
+            if (b_wr_en_i_0 = '1') then
+                -- synthesis translate_off
+                assert response_pending = '0' and response_ready = '1'
+                  report "BAR write accepted while CDC response busy" severity failure;
+                -- synthesis translate_on
 				case (b_wr_a_i_0(8 downto 0)) is 
-					when "000000001" => P_reg_se_size <= b_wr_d_i_0;
-					when "000000100" => P_reg_io_resp <= b_wr_d_i_0;
-					when "000000101" => P_reg_io_int <= b_wr_d_i_0;
-					when "000001000" => P_reg_se_resp <= b_wr_d_i_0;
-					when "000001001" => P_reg_se_rdata_hi <= b_wr_d_i_0;
-					when "000001010" => P_reg_se_rdata_lo <= b_wr_d_i_0;
+					when "000000001" => pci_se_size <= b_wr_d_i_0; response_pending <= '1';
+					when "000000100" => pci_io_resp <= b_wr_d_i_0; response_pending <= '1';
+					when "000000101" => pci_io_int <= b_wr_d_i_0; response_pending <= '1';
+					when "000001000" => pci_se_resp <= b_wr_d_i_0; response_pending <= '1';
+					when "000001001" => pci_se_rdata_hi <= b_wr_d_i_0; response_pending <= '1';
+					when "000001010" => pci_se_rdata_lo <= b_wr_d_i_0; response_pending <= '1';
 					when others => null;
 				end case;
 			end if;
+		  end if; -- synchronized reset release
 		end if;
 	end process;
 
