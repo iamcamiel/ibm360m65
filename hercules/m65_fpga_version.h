@@ -9,7 +9,7 @@
 #define M65_FPGA_BUILD_MAGIC 0x4d363542U
 #define M65_FPGA_INTERFACE_MAJOR 1U
 #define M65_FPGA_INTERFACE_MINOR_MIN 2U
-#define M65_FPGA_REQUIRED_VERSION 0x00010001U
+#define M65_FPGA_REQUIRED_VERSION 0x00010002U
 
 static inline unsigned int m65_bcd_value(unsigned int packed)
 {

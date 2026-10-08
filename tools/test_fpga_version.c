@@ -16,7 +16,8 @@ int main(void)
         {0x20000, magic, revision, 0x20261007, 0x00174503, 0},
         {0x10002, 0, revision, 0x20261007, 0x00174503, 0},
         {0x10002, magic, 0x10000, 0x20261007, 0x00174503, 0}, /* predates M17 ALD correction */
-        {0x10002, magic, 0x10002, 0x20261007, 0x00174503, 0}, /* unknown later revision */
+        {0x10002, magic, 0x10001, 0x20261007, 0x00174503, 0}, /* predates 100 MHz two-pass CPU scheduling */
+        {0x10002, magic, 0x10003, 0x20261007, 0x00174503, 0}, /* unknown later revision */
         {0x10002, magic, revision, 0, 0, 0},
         {0x10002, magic, revision, 0x20260229, 0x00174503, 0},
         {0x10002, magic, revision, 0x21000229, 0x00174503, 0},

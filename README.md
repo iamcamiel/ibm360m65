@@ -294,7 +294,7 @@ BAR0 keeps its existing CPU register layout and exposes read-only build metadata
 | `0x7EC` | Metadata signature `0x4D363542` (`M65B`) |
 | `0x7F0` | UTC build time, packed BCD `00HHMMSS` |
 | `0x7F4` | UTC build date, packed BCD `YYYYMMDD` |
-| `0x7F8` | FPGA revision, 16-bit major and minor (now 1.1, including the AR401 M17 correction) |
+| `0x7F8` | FPGA revision, 16-bit major and minor (now 1.2, including the AR401 M17 correction and 100 MHz two-pass CPU scheduling) |
 | `0x7FC` | PCIe interface revision, 16-bit major and minor (now 1.2) |
 
 Use the ISE 14.7 environment and run `xtclsh tools/build_fpga.tcl /path/to/ibm360m65`.
@@ -312,7 +312,7 @@ package has a zero date so an unstamped build is rejected.
 
 The hardware emulator reports the FPGA revision and timestamp before issuing
 CPU register commands. It requires interface major 1, interface minor at least
-2, FPGA revision exactly 1.1, the metadata signature and a valid timestamp.
+2, FPGA revision exactly 1.2, the metadata signature and a valid timestamp.
 Legacy bitstreams that returned 1.1 from unused addresses are rejected. The
 build date is diagnostic; matching dates alone never establish compatibility.
 Increment the FPGA revision in both `fpga_build.vhd` and
