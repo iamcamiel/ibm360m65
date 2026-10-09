@@ -80,10 +80,13 @@ architecture Behavioral of BLINKEN is
   signal serialized_leds : led_banks := (others => (others => '0'));
   signal frame_generation : unsigned(31 downto 0) := (others => '0');
   signal pwr : STD_LOGIC := '0';
+  -- The reset/startup scan precedes the first input-chain latch pulse.
+  signal scan_armed : std_logic := '0';
 begin
 	process (clk, rst_i)
         variable captured : std_logic_vector(735 downto 0);
         variable switches : std_logic_vector(0 to 191);
+        variable next_power : std_logic;
 	begin
         if rst_i = '1' then
             switch_meta <= (others => '1'); switch_sync <= (others => '1');
@@ -92,6 +95,7 @@ begin
             panel_snapshot_o <= (others => '0'); panel_valid_o <= '0';
             blink_count <= 0; waiting_blink <= '1';
             clk2 <= '0'; counter <= 0; pwr <= '0';
+            scan_armed <= '0';
             l0 <= (others => '0'); l1 <= (others => '0'); l2 <= (others => '0');
             l3 <= (others => '0'); l4 <= (others => '0'); l5 <= (others => '0');
             scanned_switches(0) <= (others => '1'); scanned_switches(1) <= (others => '1');
@@ -102,6 +106,7 @@ begin
         elsif rising_edge(clk) then
             switch_meta <= disp_shift_i; switch_sync <= switch_meta;
             panel_valid_o <= '0';
+            if configured = '0' then pwr <= '0'; end if;
             -- Configuration waits blink only the red Power Off lamp pair.
             -- This counter does not gate or change the serial scan clock.
             if configured = '1' then
@@ -112,6 +117,20 @@ begin
                 blink_count <= blink_count + 1;
             end if;
             if enable_i = '1' then
+            if clk2 = '1' and counter = 41 then
+                -- Apply active-high power buttons once per complete input frame.
+                -- Off wins simultaneous presses; configuration loss holds reset.
+                next_power := pwr;
+                if configured = '0' or scan_armed = '0' then
+                    next_power := '0';
+                elsif scanned_switches(0)(12) = '1' then
+                    next_power := '0';
+                elsif scanned_switches(0)(11) = '1' then
+                    next_power := '1';
+                end if;
+                pwr <= next_power;
+                scan_armed <= '1';
+                -- Freeze all six LED words for the entire following serial frame.
 			if (configured = '0') then
 				l0 <= (others=>'0');
 				l1 <= (others=>'0');
@@ -119,7 +138,7 @@ begin
 				l3 <= (38 => waiting_blink, 39 => waiting_blink, others => '0');
 				l4 <= (others=>'0');
 				l5 <= (others=>'0');
-			elsif (pwr = '0') then
+			elsif (next_power = '0') then
 				l0 <= (others=>'0');
 				l1 <= (others=>'0');
 				l2 <= (others=>'0');
@@ -134,6 +153,7 @@ begin
 				l4 <= li4;
 				l5 <= li5;
 			end if;
+            end if;
 
 
 			if (clk2 = '1') then
@@ -145,12 +165,12 @@ begin
                     captured := (others => '0');
                     captured(31 downto 0) := std_logic_vector(frame_generation + 1);
                     captured(32) := configured;
-                    captured(33) := pwr;
-                    captured(34) := not pwr; -- ALD panel reset
+                    captured(33) := next_power;
+                    captured(34) := not next_power; -- ALD panel reset
                     captured(35) := '1'; -- complete frame
-                    captured(36) := not scanned_switches(0)(11); -- Power On, active low input
-                    captured(37) := not scanned_switches(0)(12); -- Power Off
-                    captured(38) := not scanned_switches(0)(14); -- Load
+                    captured(36) := scanned_switches(0)(11); -- Power On, active high input
+                    captured(37) := scanned_switches(0)(12); -- Power Off
+                    captured(38) := scanned_switches(0)(14); -- Load
                     captured(39) := waiting_blink and not configured;
                     captured(57) := '1'; -- latch high at this completed frame
                     for bank in 0 to 7 loop
@@ -188,11 +208,6 @@ begin
 					disp_latch_n_o <= '0';
 				else
 					disp_clk_o <= '0';
-					if (counter = 12 and switch_sync(0)='0' and configured='1') then
-						pwr <= '1';
-					elsif ((counter = 11 and switch_sync(0)='0') or configured='0') then
-						pwr <= '0';
-					end if;
 					if (counter < 24) then
 						scanned_switches(0)(23-counter) <= switch_sync(0);
 						scanned_switches(1)(23-counter) <= switch_sync(1);

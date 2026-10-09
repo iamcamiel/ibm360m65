@@ -9,25 +9,27 @@ int main(void)
         unsigned int interface_version, magic, revision, date, time;
         int accepted;
     } cases[] = {
-        {0x10003, magic, revision, 0x20261007, 0x00174503, 1},
-        {0x10004, magic, revision, 0x20261007, 0x00000000, 1},
-        {0x10003, magic, revision, 0x20240229, 0x00235959, 1},
+        {0x10005, magic, revision, 0x20261007, 0x00174503, 1},
+        {0x10006, magic, revision, 0x20261007, 0x00000000, 1},
+        {0x10005, magic, revision, 0x20240229, 0x00235959, 1},
         {0x10001, 0x10001, 0x10001, 0x10001, 0x10001, 0}, /* old aliasing bitstream */
         {0x20000, magic, revision, 0x20261007, 0x00174503, 0},
         {0x10002, magic, revision, 0x20261007, 0x00174503, 0}, /* missing key-response protocol */
-        {0x10003, 0, revision, 0x20261007, 0x00174503, 0},
-        {0x10003, magic, 0x10000, 0x20261007, 0x00174503, 0}, /* predates M17 ALD correction */
-        {0x10003, magic, 0x10001, 0x20261007, 0x00174503, 0}, /* predates two-pass scheduling */
-        {0x10003, magic, 0x10002, 0x20261007, 0x00174503, 0}, /* missing ISK return path */
-        {0x10003, magic, 0x10004, 0x20261007, 0x00174503, 0}, /* unknown later revision */
-        {0x10003, magic, revision, 0, 0, 0},
-        {0x10003, magic, revision, 0x20260229, 0x00174503, 0},
-        {0x10003, magic, revision, 0x21000229, 0x00174503, 0},
-        {0x10003, magic, revision, 0x20260a07, 0x00174503, 0},
-        {0x10003, magic, revision, 0x20260431, 0x00174503, 0},
-        {0x10003, magic, revision, 0x20261007, 0x00240000, 0},
-        {0x10003, magic, revision, 0x20261007, 0x00176000, 0},
-        {0x10003, magic, revision, 0x20261007, 0x01000000, 0}
+        {0x10005, 0, revision, 0x20261007, 0x00174503, 0},
+        {0x10005, magic, 0x10000, 0x20261007, 0x00174503, 0}, /* predates M17 ALD correction */
+        {0x10005, magic, 0x10001, 0x20261007, 0x00174503, 0}, /* predates two-pass scheduling */
+        {0x10005, magic, 0x10002, 0x20261007, 0x00174503, 0}, /* missing ISK return path */
+        {0x10005, magic, 0x10005, 0x20261007, 0x00174503, 0}, /* unknown later revision */
+        {0x10005, magic, 0x10003, 0x20261007, 0x00174503, 0}, /* old panel polarities */
+        {0x10004, magic, revision, 0x20261007, 0x00174503, 0}, /* old pressed flags */
+        {0x10005, magic, revision, 0, 0, 0},
+        {0x10005, magic, revision, 0x20260229, 0x00174503, 0},
+        {0x10005, magic, revision, 0x21000229, 0x00174503, 0},
+        {0x10005, magic, revision, 0x20260a07, 0x00174503, 0},
+        {0x10005, magic, revision, 0x20260431, 0x00174503, 0},
+        {0x10005, magic, revision, 0x20261007, 0x00240000, 0},
+        {0x10005, magic, revision, 0x20261007, 0x00176000, 0},
+        {0x10005, magic, revision, 0x20261007, 0x01000000, 0}
     };
     unsigned int i;
     for (i = 0; i < sizeof cases / sizeof cases[0]; ++i) {

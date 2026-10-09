@@ -16,6 +16,18 @@
 
 SECTION PK_PL
 
+; Measured raw panel wiring, 2026-10-09. Bank/bit numbers are serial indices.
+; B0.11/12/13/14: Power On/Off, Interrupt, Load, all active high.
+; Auxiliary B0.15..23/B1.0..2 are MARGIN SEL contacts except B0.21 (LOWER).
+; MARGIN SEL: SF1 B1.0, SF2 B0.17, SF3 B0.23, SF4 B0.16,
+; CPU A B0.22, B B0.15, C no asserted contact, E B0.20; ROS B1.2;
+; CHAN1 B0.18, CHAN2 B1.1, CHAN3 B0.19. All are active high.
+; B6.20: RATE PROCESS, active high; B6.23: unlabeled lever DOWN, active high.
+; B6.5: white unmarked pushbutton, active low, intended function unknown.
+; B6.12/21/22 and B7.16..23 are unidentified, not confirmed unwired.
+; TEST MODE and MARGIN RAISE have no identified scanned contacts.
+; Preserve raw auxiliary signals below without assigning invented CPU functions.
+
 +unused sw 0[15..23]  
   +switches 0[15..23](*)
 +unused sw 1[0..2]
@@ -155,12 +167,10 @@ SECTION PK_PL
     +switches 6[7](*)
 
 +ce load pb
-  NOT
-    +switches 0[14](*)
+  +switches 0[14](*)
 
 +ce interrupt pb
-  NOT
-    +switches 0[13](*)
+  +switches 0[13](*)
 
 +ce display pb
   NOT
@@ -187,17 +197,18 @@ SECTION PK_PL
 
 -gated common pushbuttons
   AND
-    +switches 0[13..14](*)
+    NOT
+      +switches 0[13](*)
+    NOT
+      +switches 0[14](*)
     +switches 1[3..4](*)
     +switches 6[6..9](*)
     +switches 6[14..18](*)
 
 +cava power on pb
-  NOT
-    +switches 0[11](*)
+  +switches 0[11](*)
 +cava power off pb
-  NOT
-    +switches 0[12](*)
+  +switches 0[12](*)
 
 -ce rate instruction step sw
   NOT
@@ -255,8 +266,7 @@ SECTION PK_PL
     +switches 7[1](*)
 
 +local stor sw
-  NOT
-    +switches 7[4](*)
+  +switches 7[4](*)
 
 -main storage byte
   NOT

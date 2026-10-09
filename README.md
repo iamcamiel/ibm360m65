@@ -371,9 +371,15 @@ package has a zero date so an unstamped build is rejected.
 
 The hardware emulator reports the FPGA revision and timestamp before issuing
 CPU register commands. It requires interface major 1, interface minor at least
-3, FPGA revision exactly 1.3, the metadata signature and a valid timestamp.
+5, FPGA revision exactly 1.4, the metadata signature and a valid timestamp.
 Legacy bitstreams that returned 1.1 from unused addresses are rejected. The
 build date is diagnostic; matching dates alone never establish compatibility.
+FPGA 1.4 corrects measured active-high Power On/Off, LOAD, INTERRUPT and LOCAL
+selection inputs; other measured active-low controls retain their decoding.
+Power changes use complete latched scans, with Off priority, and LED words stay
+fixed throughout each serial frame. Interface 1.5 corrects the panel pressed
+flags. Raw input bank bits remain uninverted. TEST MODE and MARGIN RAISE remain
+unassigned pending wiring investigation.
 Increment the FPGA revision in both `fpga_build.vhd` and
 `hercules/m65_fpga_version.h` when changing CPU logic or behavior that must
 match the emulator. Bump the interface major for incompatible register or

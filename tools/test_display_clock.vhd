@@ -52,8 +52,8 @@ begin
     begin
       -- 40 serial bits plus latch slots 40/41; two updates per serial bit.
       for bitno in 0 to 41 loop
-        shift_in <= (others => '1');
-        if press and bitno = power_button then shift_in(0) <= '0'; end if;
+        shift_in <= (others => '1'); shift_in(0) <= '0';
+        if press and bitno = power_button then shift_in(0) <= '1'; end if;
         -- Alternate patterns on other switch banks, stable well before sample.
         for bank in 1 to 7 loop
           if (bitno+bank) mod 2 = 0 then shift_in(bank) <= '0'; end if;
@@ -77,14 +77,19 @@ begin
     assert power_off = '1' and display_clk = '0' and latch_n = '1'
       report "display reset outputs" severity failure;
     reset <= '0';
+    frame(12, false); assert power_off = '1' report "released buttons enabled power" severity failure;
     frame(12, true); assert power_off = '0' report "power-on switch" severity failure;
     -- All-ones lamps must shift to each of the six panel chains while powered on.
     for bitno in 0 to 39 loop
-      shift_in <= (others => '1'); tick;
+      shift_in <= (others => '1'); shift_in(0) <= '0';
+      -- Changing the source words halfway through must not tear this frame.
+      if bitno = 20 then lamps <= (others => '0'); end if;
+      tick;
       assert shift_out = "111111" report "lamp scan data" severity failure;
       tick;
     end loop;
     for bitno in 40 to 41 loop tick; tick; end loop;
+    frame(12, false); assert power_off = '0' report "released buttons lost power" severity failure;
     frame(11, true); assert power_off = '1' report "power-off switch" severity failure;
     configured <= '0'; frame(12, true);
     assert power_off = '1' report "unconfigured panel enabled CPU" severity failure;
