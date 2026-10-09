@@ -10,6 +10,16 @@ set project_path $root/xise/ibm360.xise
 set file [open $project_path r]
 set project_xml [read $file]
 close $file
+# The board UCF already includes the PCIe physical and timing constraints.
+# The generic endpoint UCF selects different pins and overrides the board file
+# when ISE passes both files to ngdbuild. Remove it before opening the project.
+set generic_ucf {<file xil_pn:name="../src/vhdl/pcie/xilinx_pci_exp_blk_plus_1_lane_ep_xc5vlx110t-ff1136-1.ucf"[^>]*>[^<]*(?:<association[^>]*/>[^<]*)*</file>}
+if {[regsub $generic_ucf $project_xml {} project_xml]} {
+    set file [open $project_path w]
+    puts -nonewline $file $project_xml
+    close $file
+    puts "PCIE_BOARD_CONSTRAINTS removed generic endpoint UCF"
+}
 set sources {}
 foreach {entry path} [regexp -all -inline {<file xil_pn:name="([^"]+)"} $project_xml] {
     lappend sources [file normalize [file join $root/xise $path]]
@@ -42,3 +52,5 @@ set result [process run {Generate Programming File}]
 puts "BUILD_RESULT $result"
 project close
 if {!$result} { exit 1 }
+# Build completion alone does not prove that the PCIe connector was selected.
+puts [exec python $root/tools/audit_pcie_pins.py --pcf $root/xise/IBM360.pcf --json $root/xise/pcie-pin-audit.json 2>@1]
