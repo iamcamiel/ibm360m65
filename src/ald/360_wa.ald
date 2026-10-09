@@ -225,8 +225,11 @@ SECTION WA
 
 +se counter in[1..0]
   +reg se resp[31..30](*)
-+se resp unused[29..0]
-  +reg se resp[29..0](*)
+; Interface 1.3: held key response travels with the acknowledged sequence.
++se key valid
+  +reg se resp[24](*)
++se resp unused[23..0]
+  +reg se resp[23..0](*)
 
 +sdbo[0..31]
   OR
@@ -480,11 +483,23 @@ SPECIAL
 ;+se cmd2[3](*)
 ;  +stor addr comp(MA)
 
-+out key [0..4]
-  0
++out key[0]
+  +reg se resp[29](*)
++out key[1]
+  +reg se resp[28](*)
++out key[2]
+  +reg se resp[27](*)
++out key[3]
+  +reg se resp[26](*)
++out key[4]
+  +reg se resp[25](*)
 
 +key advance
-  0
+  AND
+    +insert key
+    +se key valid
+    +se counter eq
+    +se busy
 
 +prot addr check
   0

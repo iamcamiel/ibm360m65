@@ -1429,7 +1429,9 @@ extern "C" {
     }
 
     void record_65_set_key(int sec, int sea) {
-        sk65[sea & 0x7ffff0] = (sec >> 25) & 0x1f;
+        // WA command bits 29..25 carry the five Model-65 key bits.
+        // Compare them in Hercules's key-byte positions 7..3.
+        sk65[sea & 0x7ffff0] = ((unsigned int)sec >> 22) & 0xf8;
     }
 
     void record_65_write(int sea, int wh, int wl) {

@@ -54,10 +54,6 @@ NET  CLK_FPGA_N           LOC="K19";   # Bank 3, Vcco=2.5V, No DCI
 NET  CLK_FPGA_P           LOC="L19";   # Bank 3, Vcco=2.5V, No DCI      
 NET "clk200" PERIOD = 5ns;
 NET "clk" PERIOD = 10ns;
-# Reduce ROS address fanout after placement only on the two baseline offenders.
-# No blanket synthesis MAX_FANOUT limit is applied to the address vector.
-NET "ald/RX/P_temp1203<4>" MAX_FANOUT = REDUCE;
-NET "ald/RX/P_temp1203<7>" MAX_FANOUT = REDUCE;
 # Display logic now uses clk with a local enable every 512 edges.
 # Mailboxes hold the complete bus until the capture acknowledgement returns.
 # Only request/ack first-stage inputs are excluded from synchronous timing.

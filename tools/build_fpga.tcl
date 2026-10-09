@@ -32,12 +32,12 @@ foreach name {PIO_TO_CTRL PIO_64_RX_ENGINE PIO_64_TX_ENGINE} {
 }
 project set {Implementation Top} {Architecture|IBM360|Behavioral}
 project set {Target UCF File Name} $root/src/ucf/ibm360.ucf
-# Needed for the placement-based ROS-address MAX_FANOUT constraints.
+# Keep register duplication available to synthesis and placement.
 project set {Register Duplication} true -process {Synthesize - XST}
 project set {Register Duplication} On -process {Map}
 project set {Enable Multi-Threading} 2 -process {Map}
 project set {Enable Multi-Threading} 4 -process {Place & Route}
-puts "ROS_ADDRESS_DISTRIBUTION MAP_REDUCE_BITS=4,7 XST_MAX_FANOUT=DEFAULT MAP_THREADS=2 PAR_THREADS=4"
+puts "ROS_ADDRESS_DISTRIBUTION XST_MAX_FANOUT=DEFAULT MAP_MAX_FANOUT=DEFAULT MAP_THREADS=2 PAR_THREADS=4"
 set result [process run {Generate Programming File}]
 puts "BUILD_RESULT $result"
 project close

@@ -1,5 +1,5 @@
 # Remove the previous blanket synthesis constraint after ALD generation.
-# The UCF now asks MAP to reduce fanout only on ROS address bits 4 and 7.
+# ROS address fanout uses the default synthesis and placement handling.
 # Executable RX logic, register latency and clock enables stay unchanged.
 if {$argc != 1} { error "usage: distribute_ros_address.tcl /path/to/360_rx.vhd" }
 set path [lindex $argv 0]
@@ -29,4 +29,4 @@ if {[string first "ROS_ADDRESS_DISTRIBUTION_BEGIN" $content] >= 0} {
     close $file
     file rename -force "$path.tmp" $path
 }
-puts "ROS_ADDRESS_DISTRIBUTION driver=P_temp1203 bits=4,7 XST_MAX_FANOUT=DEFAULT MAP_MAX_FANOUT=REDUCE"
+puts "ROS_ADDRESS_DISTRIBUTION driver=P_temp1203 XST_MAX_FANOUT=DEFAULT MAP_MAX_FANOUT=DEFAULT"

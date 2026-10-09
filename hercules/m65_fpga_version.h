@@ -8,8 +8,8 @@
 #define M65_REG_FPGA_VER    0x1fe
 #define M65_FPGA_BUILD_MAGIC 0x4d363542U
 #define M65_FPGA_INTERFACE_MAJOR 1U
-#define M65_FPGA_INTERFACE_MINOR_MIN 2U
-#define M65_FPGA_REQUIRED_VERSION 0x00010002U
+#define M65_FPGA_INTERFACE_MINOR_MIN 3U
+#define M65_FPGA_REQUIRED_VERSION 0x00010003U
 
 static inline unsigned int m65_bcd_value(unsigned int packed)
 {
@@ -32,7 +32,7 @@ static inline const char *m65_fpga_compatibility_error(unsigned int interface_ve
     if ((interface_version >> 16) != M65_FPGA_INTERFACE_MAJOR)
         return "unsupported PCIe interface major version";
     if ((interface_version & 65535U) < M65_FPGA_INTERFACE_MINOR_MIN)
-        return "bitstream predates FPGA build metadata (interface 1.2 required)";
+        return "bitstream predates ISK key responses (interface 1.3 required)";
     if (magic != M65_FPGA_BUILD_MAGIC)
         return "missing FPGA build metadata signature";
     if (fpga_version != M65_FPGA_REQUIRED_VERSION)

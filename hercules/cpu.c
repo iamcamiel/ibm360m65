@@ -1169,6 +1169,7 @@ void process_memory(REGS* regs) {
     unsigned int sec = read_m65_reg(M65_REG_SE_CMD);
     if ((current_se_num ^ sec) & 0xc0000000) {
         current_se_num = sec & 0xc0000000;
+        unsigned int response = current_se_num;
         unsigned int sea = read_m65_reg(M65_REG_SE_ADDR);
 
         if (mon_stor)
@@ -1226,9 +1227,16 @@ void process_memory(REGS* regs) {
 #else
                 /* Update the storage key from R1 register bits 24-30 */
                 STORAGE_KEY(sea & 0x7ffff0, regs) &= STORKEY_BADFRM;
-                STORAGE_KEY(sea & 0x7ffff0, regs) |= (sec>>24) & 0x3e & ~(STORKEY_BADFRM);  // CAVA SHIFT and AND correct???
+                STORAGE_KEY(sea & 0x7ffff0, regs) |= ((sec >> 22) & 0xf8) & ~(STORKEY_BADFRM);
                 STORKEY_INVALIDATE(regs, sea & 0x7ffff0);
 #endif
+            }
+            else if (sec & 4) {
+                /* ISK returns the five Model-65 key bits, not a data word.
+                   Keep key and valid together with the completed sequence.
+                   WA gates key advance only for that matching live request. */
+                unsigned int key = STORAGE_KEY(sea & 0x007ff800, regs) & 0xf8;
+                response |= (key << 22) | 0x01000000;
             }
             else {
                 // read
@@ -1237,7 +1245,7 @@ void process_memory(REGS* regs) {
                 write_m65_reg(M65_REG_SE_RDATA_LO, htonl(data >> 32));
             }
         }
-        write_m65_reg(M65_REG_SE_RESP, current_se_num);
+        write_m65_reg(M65_REG_SE_RESP, response);
     }
 }
 

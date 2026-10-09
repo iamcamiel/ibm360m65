@@ -298,15 +298,20 @@ BAR0 keeps its existing CPU register layout and exposes read-only build metadata
 | `0x7EC` | Metadata signature `0x4D363542` (`M65B`) |
 | `0x7F0` | UTC build time, packed BCD `00HHMMSS` |
 | `0x7F4` | UTC build date, packed BCD `YYYYMMDD` |
-| `0x7F8` | FPGA revision, 16-bit major and minor (now 1.2, including the AR401 M17 correction and 100 MHz two-pass CPU scheduling) |
-| `0x7FC` | PCIe interface revision, 16-bit major and minor (now 1.2) |
+| `0x7F8` | FPGA revision, 16-bit major and minor (now 1.3, including the ISK storage-key return path, AR401 M17 correction and 100 MHz two-pass CPU scheduling) |
+| `0x7FC` | PCIe interface revision, 16-bit major and minor (now 1.3) |
+
+SE response bits 31..30 acknowledge the request sequence. An ISK response also
+sets bit 24 (key valid) and places the five storage-key bits in 29..25, in IBM
+bit order. WA accepts key advance only for a valid response matching its active
+ISK request. Other responses clear key valid. Register offsets are unchanged.
 
 Use the ISE 14.7 environment and run `xtclsh tools/build_fpga.tcl /path/to/ibm360m65`.
 This regenerates the PCIe core, adds its required HDL, fixes the UCF selection,
 and stamps `src/vhdl/pcie/fpga_build.vhd` immediately before synthesis. It also
 removes the previous blanket ROS synthesis fanout attribute after ALD generation.
-The UCF requests placement-based fanout reduction only for ROS address bits
-4 and 7, with register duplication enabled in MAP. This
+ROS fanout uses default synthesis and placement handling, with register
+duplication enabled in MAP. This
 does not add a pipeline stage or relax the 10 ns core clock constraint. For a GUI
 build, first run `xtclsh tools/stamp_fpga_build.tcl /path/to/fpga_build.vhd` and
 `xtclsh tools/distribute_ros_address.tcl /path/to/gen/ald/360_rx.vhd`, then enable
@@ -316,7 +321,7 @@ package has a zero date so an unstamped build is rejected.
 
 The hardware emulator reports the FPGA revision and timestamp before issuing
 CPU register commands. It requires interface major 1, interface minor at least
-2, FPGA revision exactly 1.2, the metadata signature and a valid timestamp.
+3, FPGA revision exactly 1.3, the metadata signature and a valid timestamp.
 Legacy bitstreams that returned 1.1 from unused addresses are rejected. The
 build date is diagnostic; matching dates alone never establish compatibility.
 Increment the FPGA revision in both `fpga_build.vhd` and
