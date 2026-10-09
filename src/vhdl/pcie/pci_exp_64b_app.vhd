@@ -105,6 +105,8 @@ port  (
   cfg_lcommand              : in std_logic_vector(15 downto 0);
   
     core_clk_i, cdc_reset_i : in std_logic;
+    panel_snapshot_i : in std_logic_vector(735 downto 0) := (others => '0');
+    panel_valid_i : in std_logic := '0';
     P_reg_io_int : buffer STD_LOGIC_VECTOR (31 downto 0);
     P_reg_io_resp : buffer STD_LOGIC_VECTOR (31 downto 0);
     P_reg_se_rdata_hi : buffer STD_LOGIC_VECTOR (31 downto 0);
@@ -199,6 +201,7 @@ port map (
 ,
 		
     core_clk_i => core_clk_i, cdc_reset_i => cdc_reset_i,
+    panel_snapshot_i => panel_snapshot_i, panel_valid_i => panel_valid_i,
     P_reg_io_int => P_reg_io_int,
 	 P_reg_io_resp => P_reg_io_resp,
     P_reg_se_rdata_hi => P_reg_se_rdata_hi,

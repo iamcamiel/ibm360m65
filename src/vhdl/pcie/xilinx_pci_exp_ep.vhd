@@ -42,6 +42,8 @@ port  (
   pci_exp_txn       : out std_logic_vector((1 - 1) downto 0);
   pci_exp_txp       : out std_logic_vector((1 - 1) downto 0);
   
+    panel_snapshot_i : in std_logic_vector(735 downto 0) := (others => '0');
+    panel_valid_i : in std_logic := '0';
     P_reg_io_int : buffer STD_LOGIC_VECTOR (31 downto 0);
     P_reg_io_resp : buffer STD_LOGIC_VECTOR (31 downto 0);
     P_reg_se_rdata_hi : buffer STD_LOGIC_VECTOR (31 downto 0);
@@ -338,6 +340,7 @@ app : entity work.pci_exp_64b_app port map (
 ,
 		
     core_clk_i => core_clk_i, cdc_reset_i => cdc_reset_i,
+    panel_snapshot_i => panel_snapshot_i, panel_valid_i => panel_valid_i,
     P_reg_io_int => P_reg_io_int,
 	 P_reg_io_resp => P_reg_io_resp,
     P_reg_se_rdata_hi => P_reg_se_rdata_hi,

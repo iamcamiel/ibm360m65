@@ -25,6 +25,7 @@ begin
     sw0 => sw(0), sw1 => sw(1), sw2 => sw(2), sw3 => sw(3),
     sw4 => sw(4), sw5 => sw(5), sw6 => sw(6), sw7 => sw(7),
     li0 => lamps, li1 => lamps, li2 => lamps, li3 => lamps, li4 => lamps, li5 => lamps,
+    panel_snapshot_o => open, panel_valid_o => open,
     configured => configured, power_off => power_off);
   process
   begin while not done loop clk <= not clk; wait for 5 ns; end loop; wait; end process;

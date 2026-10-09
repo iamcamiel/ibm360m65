@@ -52,6 +52,8 @@ architecture Behavioral of IBM360 is
 	signal panel_rst : STD_LOGIC;
 	signal sys_reset_n_c : STD_LOGIC;
 	signal display_enable, display_reset : STD_LOGIC;
+  signal panel_snapshot : std_logic_vector(735 downto 0);
+  signal panel_valid : std_logic;
 	signal pcie_reset_status, pcie_link_status : STD_LOGIC;
 	signal pcie_status_meta, pcie_status_sync : STD_LOGIC_VECTOR(1 downto 0) := "00";
 	signal rst : STD_LOGIC;
@@ -213,11 +215,13 @@ begin
 	 
 	 configured => P_reg_se_size(0),
 	 
+    panel_snapshot_o => panel_snapshot, panel_valid_o => panel_valid,
 	 power_off => panel_rst
   );
   
   pcie : entity XILINX_PCI_EXP_EP port map (
     core_clk_i => clk, core_ready_i => core_ready,
+    panel_snapshot_i => panel_snapshot, panel_valid_i => panel_valid,
 		pci_exp_txp(0) => pci_exp_txp,
 		pci_exp_txn(0) => pci_exp_txn,
 		pci_exp_rxp(0) => pci_exp_rxp,

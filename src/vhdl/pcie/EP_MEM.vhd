@@ -16,6 +16,7 @@
 
 library ieee;
 use ieee.std_logic_1164.all;
+use ieee.numeric_std.all;
 use work.fpga_build.all;
 
 entity EP_MEM is port (
@@ -32,6 +33,8 @@ entity EP_MEM is port (
   b_wr_en_i_0 : in std_logic ;
   b_rd_d_o_0 : out std_logic_vector(31 downto 0);
   
+    panel_snapshot_i : in std_logic_vector(735 downto 0) := (others => '0');
+    panel_valid_i : in std_logic := '0';
     P_reg_io_int : buffer STD_LOGIC_VECTOR (31 downto 0);
     P_reg_io_resp : buffer STD_LOGIC_VECTOR (31 downto 0);
     P_reg_se_rdata_hi : buffer STD_LOGIC_VECTOR (31 downto 0);
@@ -70,6 +73,7 @@ architecture rtl of EP_MEM is
   signal pci_se_rdata_lo : std_logic_vector(31 downto 0) := (others => '0');
   signal pci_se_resp : std_logic_vector(31 downto 0) := (others => '0');
   signal pci_se_size : std_logic_vector(31 downto 0) := (others => '0');
+  signal panel_latest, panel_view : std_logic_vector(735 downto 0) := (others => '0');
   signal snapshot_ext : std_logic_vector(31 downto 0);
   signal snapshot_io_cmd : std_logic_vector(31 downto 0);
   signal snapshot_se_addr : std_logic_vector(31 downto 0);
@@ -119,6 +123,13 @@ begin
       source_valid_i => command_valid, source_ready_o => open,
       destination_data_o => command_snapshot, destination_valid_o => open);
 
+  -- Independent observation mailbox: it never stalls the CPU service path.
+  panel_to_pcie : entity work.CDC_MAILBOX generic map (WIDTH => 736)
+    port map (source_clk_i => core_clk_i, destination_clk_i => clk_i,
+      reset_i => cdc_reset_i, source_data_i => panel_snapshot_i,
+      source_valid_i => panel_valid_i, source_ready_o => open,
+      destination_data_o => panel_latest, destination_valid_o => open);
+
   response_payload <= pci_io_int & pci_io_resp & pci_se_rdata_hi &
                       pci_se_rdata_lo & pci_se_resp & pci_se_size;
   pcie_to_cpu : entity work.CDC_MAILBOX generic map (WIDTH => 192)
@@ -160,7 +171,7 @@ begin
 	process (clk_i, cdc_reset_i)
 	begin
         if cdc_reset_i = '1' then
-            response_pending <= '0';
+            response_pending <= '0'; panel_view <= (others => '0');
             a_rd_d_o_0 <= (others => '0'); b_rd_d_o_0 <= (others => '0');
             pci_io_int <= (others => '0');
             pci_io_resp <= (others => '0');
@@ -170,7 +181,7 @@ begin
             pci_se_size <= (others => '0');
         elsif rising_edge(clk_i) then
           if user_reset(1) = '1' then
-            response_pending <= '0';
+            response_pending <= '0'; panel_view <= (others => '0');
             pci_io_int <= (others => '0');
             pci_io_resp <= (others => '0');
             pci_se_rdata_hi <= (others => '0');
@@ -181,6 +192,10 @@ begin
             if response_pending = '1' and response_ready = '1' then
               response_pending <= '0';
             end if;
+            -- Reading magic (BAR0 0x400) captures the latest complete frame.
+            -- Subsequent reads use this stable bank, even as new scans arrive.
+            -- Only this read address captures; BAR writes are ignored here.
+            if a_rd_a_i_0 = "100000000" then panel_view <= panel_latest; end if;
 			case (a_rd_a_i_0(8 downto 0)) is 
 				when "000000000" => a_rd_d_o_0 <= "00000011011000000010000001100101"; -- 03602065
 				when "000000001" => a_rd_d_o_0 <= pci_se_size;
@@ -195,6 +210,8 @@ begin
 				when "000001010" => a_rd_d_o_0 <= pci_se_rdata_lo;
 				when "000001011" => a_rd_d_o_0 <= snapshot_se_wdata_hi;
 				when "000001100" => a_rd_d_o_0 <= snapshot_se_wdata_lo;
+				when "100000000" => a_rd_d_o_0 <= x"504E4C31"; -- PNL1
+				when "100000001" | "100000010" | "100000011" | "100000100" | "100000101" | "100000110" | "100000111" | "100001000" | "100001001" | "100001010" | "100001011" | "100001100" | "100001101" | "100001110" | "100001111" | "100010000" | "100010001" | "100010010" | "100010011" | "100010100" | "100010101" | "100010110" | "100010111" => a_rd_d_o_0 <= panel_view((to_integer(unsigned(a_rd_a_i_0))-256)*32-1 downto (to_integer(unsigned(a_rd_a_i_0))-257)*32);
 				when "111111011" => a_rd_d_o_0 <= M65_BUILD_MAGIC; -- BAR0 0x7EC
 				when "111111100" => a_rd_d_o_0 <= M65_BUILD_TIME; -- BAR0 0x7F0
 				when "111111101" => a_rd_d_o_0 <= M65_BUILD_DATE; -- BAR0 0x7F4
@@ -215,6 +232,8 @@ begin
 				when "000001010" => b_rd_d_o_0 <= pci_se_rdata_lo;
 				when "000001011" => b_rd_d_o_0 <= snapshot_se_wdata_hi;
 				when "000001100" => b_rd_d_o_0 <= snapshot_se_wdata_lo;
+				when "100000000" => b_rd_d_o_0 <= x"504E4C31"; -- PNL1
+				when "100000001" | "100000010" | "100000011" | "100000100" | "100000101" | "100000110" | "100000111" | "100001000" | "100001001" | "100001010" | "100001011" | "100001100" | "100001101" | "100001110" | "100001111" | "100010000" | "100010001" | "100010010" | "100010011" | "100010100" | "100010101" | "100010110" | "100010111" => b_rd_d_o_0 <= panel_view((to_integer(unsigned(b_wr_a_i_0))-256)*32-1 downto (to_integer(unsigned(b_wr_a_i_0))-257)*32);
 				when "111111011" => b_rd_d_o_0 <= M65_BUILD_MAGIC;
 				when "111111100" => b_rd_d_o_0 <= M65_BUILD_TIME;
 				when "111111101" => b_rd_d_o_0 <= M65_BUILD_DATE;

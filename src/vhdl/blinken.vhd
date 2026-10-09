@@ -20,6 +20,7 @@ use IEEE.NUMERIC_STD.ALL;
 
 
 entity BLINKEN is
+   generic (BLINK_HALF_CYCLES : positive := 50000000); -- 0.5 s at 100 MHz
    port (
   			  clk : in  STD_LOGIC;
               rst_i, enable_i : in STD_LOGIC;
@@ -47,6 +48,8 @@ entity BLINKEN is
 
 			  configured : in STD_LOGIC;
 
+			  panel_snapshot_o : out STD_LOGIC_VECTOR(735 downto 0);
+			  panel_valid_o : out STD_LOGIC;
 			  power_off : out STD_LOGIC
 		   );
 end BLINKEN;
@@ -67,28 +70,53 @@ architecture Behavioral of BLINKEN is
   signal l4 : STD_LOGIC_VECTOR(0 to 39);
   signal l5 : STD_LOGIC_VECTOR(0 to 39);
 
+  -- Observation only: reconstruct the exact bits presented on each SCK edge.
+  type led_banks is array (0 to 5) of std_logic_vector(0 to 39);
+  type switch_banks is array (0 to 7) of std_logic_vector(0 to 23);
+  signal scanned_switches : switch_banks := (others => (others => '1'));
+  signal serial_output : std_logic_vector(0 to 5) := (others => '0');
+  signal blink_count : natural range 0 to BLINK_HALF_CYCLES-1 := 0;
+  signal waiting_blink : std_logic := '1';
+  signal serialized_leds : led_banks := (others => (others => '0'));
+  signal frame_generation : unsigned(31 downto 0) := (others => '0');
   signal pwr : STD_LOGIC := '0';
 begin
 	process (clk, rst_i)
+        variable captured : std_logic_vector(735 downto 0);
+        variable switches : std_logic_vector(0 to 191);
 	begin
         if rst_i = '1' then
             switch_meta <= (others => '1'); switch_sync <= (others => '1');
+            serialized_leds <= (others => (others => '0'));
+            frame_generation <= (others => '0');
+            panel_snapshot_o <= (others => '0'); panel_valid_o <= '0';
+            blink_count <= 0; waiting_blink <= '1';
             clk2 <= '0'; counter <= 0; pwr <= '0';
             l0 <= (others => '0'); l1 <= (others => '0'); l2 <= (others => '0');
             l3 <= (others => '0'); l4 <= (others => '0'); l5 <= (others => '0');
-            sw0 <= (others => '1'); sw1 <= (others => '1');
-            sw2 <= (others => '1'); sw3 <= (others => '1');
-            sw4 <= (others => '1'); sw5 <= (others => '1');
-            sw6 <= (others => '1'); sw7 <= (others => '1');
-            disp_clk_o <= '0'; disp_latch_n_o <= '1'; disp_shift_o <= (others => '0');
+            scanned_switches(0) <= (others => '1'); scanned_switches(1) <= (others => '1');
+            scanned_switches(2) <= (others => '1'); scanned_switches(3) <= (others => '1');
+            scanned_switches(4) <= (others => '1'); scanned_switches(5) <= (others => '1');
+            scanned_switches(6) <= (others => '1'); scanned_switches(7) <= (others => '1');
+            disp_clk_o <= '0'; disp_latch_n_o <= '1'; serial_output <= (others => '0');
         elsif rising_edge(clk) then
             switch_meta <= disp_shift_i; switch_sync <= switch_meta;
+            panel_valid_o <= '0';
+            -- Configuration waits blink only the red Power Off lamp pair.
+            -- This counter does not gate or change the serial scan clock.
+            if configured = '1' then
+                blink_count <= 0; waiting_blink <= '1';
+            elsif blink_count = BLINK_HALF_CYCLES-1 then
+                blink_count <= 0; waiting_blink <= not waiting_blink;
+            else
+                blink_count <= blink_count + 1;
+            end if;
             if enable_i = '1' then
 			if (configured = '0') then
 				l0 <= (others=>'0');
 				l1 <= (others=>'0');
 				l2 <= (others=>'0');
-				l3 <= (others=>'0');
+				l3 <= (38 => waiting_blink, 39 => waiting_blink, others => '0');
 				l4 <= (others=>'0');
 				l5 <= (others=>'0');
 			elsif (pwr = '0') then
@@ -110,10 +138,46 @@ begin
 
 			if (clk2 = '1') then
 				if (counter = 41) then
+                    -- A complete scan, after all 24 inputs and 40 outputs.
+                    -- DWORD 1: generation; 2: status; 3: enable divider.
+                    -- DWORDs 4..11: switches; 12..23: low/high LED pairs.
+                    -- Panel bit N always maps to integer bit N in these words.
+                    captured := (others => '0');
+                    captured(31 downto 0) := std_logic_vector(frame_generation + 1);
+                    captured(32) := configured;
+                    captured(33) := pwr;
+                    captured(34) := not pwr; -- ALD panel reset
+                    captured(35) := '1'; -- complete frame
+                    captured(36) := not scanned_switches(0)(11); -- Power On, active low input
+                    captured(37) := not scanned_switches(0)(12); -- Power Off
+                    captured(38) := not scanned_switches(0)(14); -- Load
+                    captured(39) := waiting_blink and not configured;
+                    captured(57) := '1'; -- latch high at this completed frame
+                    for bank in 0 to 7 loop
+                        captured(40+bank) := switch_sync(bank);
+                        captured(48+bank) := switch_meta(bank);
+                    end loop;
+                    captured(95 downto 64) := std_logic_vector(to_unsigned(512,32));
+                    switches := scanned_switches(0) & scanned_switches(1) & scanned_switches(2) & scanned_switches(3) & scanned_switches(4) & scanned_switches(5) & scanned_switches(6) & scanned_switches(7);
+                    for bank in 0 to 7 loop
+                        for bitno in 0 to 23 loop
+                            captured((3+bank)*32+bitno) := switches(bank*24+bitno);
+                        end loop;
+                    end loop;
+                    for bank in 0 to 5 loop
+                        for bitno in 0 to 39 loop
+                            captured((11+bank*2)*32+bitno) := serialized_leds(bank)(bitno);
+                        end loop;
+                    end loop;
+                    panel_snapshot_o <= captured; panel_valid_o <= '1';
+                    frame_generation <= frame_generation + 1;
 					disp_latch_n_o <= '1';
 					counter <= 0;
 				else
 					if (counter < 40) then
+                        for bank in 0 to 5 loop
+                            serialized_leds(bank)(39-counter) <= serial_output(bank);
+                        end loop;
 						disp_clk_o <= '1';
 					end if;
 					counter <= counter + 1;
@@ -130,24 +194,24 @@ begin
 						pwr <= '0';
 					end if;
 					if (counter < 24) then
-						sw0(23-counter) <= switch_sync(0);
-						sw1(23-counter) <= switch_sync(1);
-						sw2(23-counter) <= switch_sync(2);
-						sw3(23-counter) <= switch_sync(3);
-						sw4(23-counter) <= switch_sync(4);
-						sw5(23-counter) <= switch_sync(5);
-						sw6(23-counter) <= switch_sync(6);
-						sw7(23-counter) <= switch_sync(7);
+						scanned_switches(0)(23-counter) <= switch_sync(0);
+						scanned_switches(1)(23-counter) <= switch_sync(1);
+						scanned_switches(2)(23-counter) <= switch_sync(2);
+						scanned_switches(3)(23-counter) <= switch_sync(3);
+						scanned_switches(4)(23-counter) <= switch_sync(4);
+						scanned_switches(5)(23-counter) <= switch_sync(5);
+						scanned_switches(6)(23-counter) <= switch_sync(6);
+						scanned_switches(7)(23-counter) <= switch_sync(7);
 					end if;
 					if (counter < 40) then
-						disp_shift_o(0) <= l0(39-counter);
-						disp_shift_o(1) <= l1(39-counter);
-						disp_shift_o(2) <= l2(39-counter);
-						disp_shift_o(3) <= l3(39-counter);
-						disp_shift_o(4) <= l4(39-counter);
-						disp_shift_o(5) <= l5(39-counter);
+						serial_output(0) <= l0(39-counter);
+						serial_output(1) <= l1(39-counter);
+						serial_output(2) <= l2(39-counter);
+						serial_output(3) <= l3(39-counter);
+						serial_output(4) <= l4(39-counter);
+						serial_output(5) <= l5(39-counter);
 					else
-						disp_shift_o <= "000000";
+						serial_output <= "000000";
 					end if;
 				end if;
 				clk2 <= '1';
@@ -156,6 +220,15 @@ begin
 		end if;
 	end process;
 
+	disp_shift_o <= serial_output;
+	sw0 <= scanned_switches(0);
+	sw1 <= scanned_switches(1);
+	sw2 <= scanned_switches(2);
+	sw3 <= scanned_switches(3);
+	sw4 <= scanned_switches(4);
+	sw5 <= scanned_switches(5);
+	sw6 <= scanned_switches(6);
+	sw7 <= scanned_switches(7);
 	power_off <= not pwr;
 end Behavioral;
 

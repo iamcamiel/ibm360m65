@@ -299,12 +299,62 @@ BAR0 keeps its existing CPU register layout and exposes read-only build metadata
 | `0x7F0` | UTC build time, packed BCD `00HHMMSS` |
 | `0x7F4` | UTC build date, packed BCD `YYYYMMDD` |
 | `0x7F8` | FPGA revision, 16-bit major and minor (now 1.3, including the ISK storage-key return path, AR401 M17 correction and 100 MHz two-pass CPU scheduling) |
-| `0x7FC` | PCIe interface revision, 16-bit major and minor (now 1.3) |
+| `0x7FC` | PCIe interface revision, 16-bit major and minor (now 1.4, with read-only panel diagnostics) |
 
 SE response bits 31..30 acknowledge the request sequence. An ISK response also
 sets bit 24 (key valid) and places the five storage-key bits in 29..25, in IBM
 bit order. WA accepts key advance only for a valid response matching its active
 ISK request. Other responses clear key valid. Register offsets are unchanged.
+
+Interface 1.4 adds a separate panel observation mailbox; CPU FPGA revision
+remains 1.3. The existing host compatibility policy accepts this additive
+interface revision. While Hercules has not set configuration bit 0, the two
+red Power Off outputs (LED bank 3, bits 38 and 39) blink at 1 Hz, 50% duty cycle.
+The panel CPU reset remains asserted during this wait. Configuration ends the
+blink and restores the existing power-button and lamp behavior.
+
+Read the panel on the Pi with `sudo python3 tools/m65_panel_dump.py --watch 0.25`.
+Use `--json` for one machine-readable snapshot per line, or `--resource PATH`
+to choose a particular BAR0. The tool opens BAR0 read-only and does not send CPU,
+reset, configuration or panel commands. Old interface 1.3 images are rejected
+with an explanatory message rather than interpreting their version aliases as
+panel data. These source changes require synthesis and a new bitstream; they
+do not update an already loaded image.
+
+| BAR0 byte offset | Read-only panel value |
+| --- | --- |
+| `0x400` | `0x504E4C31` (`PNL1`); reading captures the latest complete scan |
+| `0x404` | Captured scan generation, incremented every completed frame |
+| `0x408` | Status flags described below |
+| `0x40C` | Serial phase enable divider (512 core edges) |
+| `0x410` .. `0x42C` | Eight 24-bit switch banks, active-low values preserved |
+| `0x430` .. `0x45C` | Six 40-bit LED banks, two DWORDs each: low 32, then high 8 |
+
+Panel bit N maps to integer bit N, including the ascending-index VHDL vectors.
+LED values record the exact serial bits presented at the forty SCK rising
+edges, not electrical feedback from the LEDs. Switch values reflect the
+FPGA's sampled scan; they do not establish that external clock edges are clean.
+The normal 100 MHz scan has a 97.65625 kHz SCK and a 430.08 us frame period.
+The diagnostic mailbox can omit a frame if it is busy; it never stalls a scan
+or the independent CPU mailboxes.
+
+Status bits 0..7 are configured, power-on latch, panel CPU reset, complete-frame
+valid, Power On pressed, Power Off pressed, Load pressed, and waiting blink on.
+Bits 8..15 contain the synchronized serial input levels; bits 16..23 contain
+the preceding input sampling stage as sampled at the frame boundary. Bit 24 is
+SCK (low at this boundary), bit 25 is latch high, and the rest are reserved zero.
+Before the first complete frame, the snapshot is zero and valid is false.
+Reading `PNL1` captures a coherent bank held through subsequent reads; read
+generation before and after the data and retry if another diagnostic reader
+captured a different bank. Writes to the observation bank are ignored.
+
+`tools/test_panel_snapshot.vhd` checks actual serialized LED bit order, switch
+packing, waiting blink, configured power behavior, held snapshots, ignored
+writes and reset with independent PCIe/core clocks. Its blink half-period is
+shortened through a generic for simulation; production uses 50,000,000 core
+edges (0.5 seconds). `tools/test_panel_dump.py` checks decoding, old-image
+rejection and concurrent-reader retry. These tests do not establish routed
+timing or resolve the observed physical panel fault.
 
 Use the ISE 14.7 environment and run `xtclsh tools/build_fpga.tcl /path/to/ibm360m65`.
 This regenerates the PCIe core, adds its required HDL, fixes the UCF selection,
