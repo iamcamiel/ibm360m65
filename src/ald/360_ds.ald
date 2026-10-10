@@ -438,6 +438,7 @@ DECODE
 
 +rosar 11 fast input 11
   ORNOT
+    -set rosar 11
     AND
       -temp
         NAND

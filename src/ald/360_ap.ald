@@ -182,9 +182,18 @@ NOCLOCK
   ORNOT
     -st d padda bus[55](RS_RT)
     -ones to padda 55
-+temp padda[56..59]
++temp padda[56..57]
   ORNOT
-    -st d padda bus[56..59](RS_RT)
+    -st d padda bus[56..57](RS_RT)
+    -ones to padda 53O56-59
+; AP581 2C B09 receives RT845 AV4, including the RT841 hot-one trigger.
++temp padda[58]
+  ORNOT
+    -st d padda bus[58](RS_RT)
+    -one to padda 58(RS_RT)
++temp padda[59]
+  ORNOT
+    -st d padda bus[59](RS_RT)
     -ones to padda 53O56-59
 +temp padda[60]
   ORNOT

@@ -33,7 +33,8 @@ SECTION KU
     AND
       -gt st bus to mcw 0-7
       -machine reset to mcw
-      +mcw bit[0..7]
+      NOT
+        -mcw bit[0..7]
 
 +reverse sab tag parity
   NOT
@@ -125,7 +126,8 @@ SECTION KU
     AND
       -gt st bus to mcw 0-7
       -machine reset to mcw
-      +mcw bit[20]
+      NOT
+        -mcw bit[20]
 
 -scan disable timer
   NOT
@@ -155,7 +157,8 @@ SECTION KU
     AND
       -machine reset diag i2 field
       -reset diag i2 field tgrs
-      +mcw bit[8..10]
+      NOT
+        -mcw bit[8..10]
 
 -ind defeat interleaving
   AND
@@ -227,22 +230,204 @@ SPECIAL
 +address sequence[0..4]
   NOT
     -address sequence[0..4]
--address sequence[0..4]
+-address sequence[0]
   NOR
     AND
-      +set addr seq[0..4]
-      +clock p0
-    AND
-      +st bus[53..57](RS_RT)
-      +clock p0
+      +st bus[53](RS_RT)
       +gt st to mcw
+      +clock p0-2
     AND
-      +gt sctr latch to addr seq
-      -temp gt sctr[0..4]
+      ORNOT
+        -set addr seq to 23 ros(DR)
+        -scan set addr seq eq 16(DR)
+        -temp ku411 1f bb
+      +clock p0-2
     AND
-      -reset address sequence
-      -reset addr seq
-      +address sequence[0..4]
+      +gt addr seq to sctr lth
+      +addr seq captured
+      NOT
+        +addr seq committed
+      +clock p0-2
+      -temp gt sctr[0]
+    AND
+      NAND
+        +gt addr seq to sctr lth
+        +addr seq captured
+        NOT
+          +addr seq committed
+        +clock p0-2
+      NAND
+        OR
+          +gt st to mcw
+          ORNOT
+            -set addr seq to 23 ros(DR)
+            -set addr seqr to 13(DR)
+            -scan set addr seq reg eq 15(DR)
+            -scan set addr seq reg eq 7(DR)
+            -scan set addr seq eq 16(DR)
+            -temp ku411 1f bb
+        +clock p0-2
+      NOT
+        -address sequence[0]
+-address sequence[1]
+  NOR
+    AND
+      +st bus[54](RS_RT)
+      +gt st to mcw
+      +clock p0-2
+    AND
+      ORNOT
+        -set addr seqr to 13(DR)
+        -scan set addr seq reg eq 15(DR)
+      +clock p0-2
+    AND
+      +gt addr seq to sctr lth
+      +addr seq captured
+      NOT
+        +addr seq committed
+      +clock p0-2
+      -temp gt sctr[1]
+    AND
+      NAND
+        +gt addr seq to sctr lth
+        +addr seq captured
+        NOT
+          +addr seq committed
+        +clock p0-2
+      NAND
+        OR
+          +gt st to mcw
+          ORNOT
+            -set addr seq to 23 ros(DR)
+            -set addr seqr to 13(DR)
+            -scan set addr seq reg eq 15(DR)
+            -scan set addr seq reg eq 7(DR)
+            -scan set addr seq eq 16(DR)
+            -temp ku411 1f bb
+        +clock p0-2
+      NOT
+        -address sequence[1]
+-address sequence[2]
+  NOR
+    AND
+      +st bus[55](RS_RT)
+      +gt st to mcw
+      +clock p0-2
+    AND
+      ORNOT
+        -set addr seq to 23 ros(DR)
+        -set addr seqr to 13(DR)
+        -scan set addr seq reg eq 15(DR)
+        -scan set addr seq reg eq 7(DR)
+        -temp ku411 1f bb
+      +clock p0-2
+    AND
+      +gt addr seq to sctr lth
+      +addr seq captured
+      NOT
+        +addr seq committed
+      +clock p0-2
+      -temp gt sctr[2]
+    AND
+      NAND
+        +gt addr seq to sctr lth
+        +addr seq captured
+        NOT
+          +addr seq committed
+        +clock p0-2
+      NAND
+        OR
+          +gt st to mcw
+          ORNOT
+            -set addr seq to 23 ros(DR)
+            -set addr seqr to 13(DR)
+            -scan set addr seq reg eq 15(DR)
+            -scan set addr seq reg eq 7(DR)
+            -scan set addr seq eq 16(DR)
+            -temp ku411 1f bb
+        +clock p0-2
+      NOT
+        -address sequence[2]
+-address sequence[3]
+  NOR
+    AND
+      +st bus[56](RS_RT)
+      +gt st to mcw
+      +clock p0-2
+    AND
+      ORNOT
+        -set addr seq to 23 ros(DR)
+        -scan set addr seq reg eq 15(DR)
+        -scan set addr seq reg eq 7(DR)
+      +clock p0-2
+    AND
+      +gt addr seq to sctr lth
+      +addr seq captured
+      NOT
+        +addr seq committed
+      +clock p0-2
+      -temp gt sctr[3]
+    AND
+      NAND
+        +gt addr seq to sctr lth
+        +addr seq captured
+        NOT
+          +addr seq committed
+        +clock p0-2
+      NAND
+        OR
+          +gt st to mcw
+          ORNOT
+            -set addr seq to 23 ros(DR)
+            -set addr seqr to 13(DR)
+            -scan set addr seq reg eq 15(DR)
+            -scan set addr seq reg eq 7(DR)
+            -scan set addr seq eq 16(DR)
+            -temp ku411 1f bb
+        +clock p0-2
+      NOT
+        -address sequence[3]
+-address sequence[4]
+  NOR
+    AND
+      +st bus[57](RS_RT)
+      +gt st to mcw
+      +clock p0-2
+    AND
+      ORNOT
+        -set addr seq to 23 ros(DR)
+        -set addr seqr to 13(DR)
+        -scan set addr seq reg eq 15(DR)
+        -scan set addr seq reg eq 7(DR)
+        -temp ku411 1f bb
+      +clock p0-2
+    AND
+      +gt addr seq to sctr lth
+      +addr seq captured
+      NOT
+        +addr seq committed
+      +clock p0-2
+      -temp gt sctr[4]
+    AND
+      NAND
+        +gt addr seq to sctr lth
+        +addr seq captured
+        NOT
+          +addr seq committed
+        +clock p0-2
+      NAND
+        OR
+          +gt st to mcw
+          ORNOT
+            -set addr seq to 23 ros(DR)
+            -set addr seqr to 13(DR)
+            -scan set addr seq reg eq 15(DR)
+            -scan set addr seq reg eq 7(DR)
+            -scan set addr seq eq 16(DR)
+            -temp ku411 1f bb
+        +clock p0-2
+      NOT
+        -address sequence[4]
 
 -temp gt sctr[0]
   NOR
@@ -273,7 +458,8 @@ SPECIAL
       +gt addr seq to sctr lth
       -clock p1
     AND
-      +sctr latch[0]
+      NOT
+        -sctr latch[0]
       +clock p0
 
 ; PAGE KU081
@@ -302,7 +488,8 @@ SPECIAL
       +gt scan ctr to sctr lth
       -clock p1
     AND
-      +sctr latch[1]
+      NOT
+        -sctr latch[1]
       +clock p0
 
 -temp gt sctr[1]
@@ -332,7 +519,9 @@ SPECIAL
     AND
       -reset scan ctr ku411
       -reset scan ctr ku451
-      +flt counter[0..3]
+      ORNOT
+        -flt counter[0..3]
+        -set scan ctr to max
 
 ; PAGE KU121
 
@@ -351,7 +540,8 @@ SPECIAL
       +ros test seq[0..2]
       -clock p1
     AND
-      +sctr latch[2..4]
+      NOT
+        -sctr latch[2..4]
       +clock p0 + p2
 
 -temp gt sctr[2]
@@ -445,7 +635,8 @@ DECODE
       +addr seq eq[0]
       -clock p1
     AND
-      +addr seq eq lth[0]
+      NOT
+        -addr seq eq lth[0]
       +clock p0
 
 +addr seq eq lth[13..14]
@@ -457,7 +648,8 @@ DECODE
       +addr seq eq[13..14]
       -clock p1
     AND
-      +addr seq eq lth[13..14]
+      NOT
+        -addr seq eq lth[13..14]
       +clock p0
 
 -addr seq eq 14 to 22
@@ -578,7 +770,8 @@ DECODE
       -flt clock bit[0..1]
     AND
       +clock p0-2
-      +flt counter eq 0 lth
+      NOT
+        -flt counter eq 0 lth
 +flt counter eq 0 lth
   NOT
     -flt counter eq 0 lth
@@ -785,19 +978,21 @@ DECODE
 
 +temp flt clock[0..1]
   NOT
-    -temp[0..1]
-      NOR
-        AND
-          +st bus[62..63](RS_RT)
-          +gt st bus to scan ctr
-        AND
-          -flt clk time lth[2..1]
-          +clock p0 gated
-          -flt clk time lth[3]
-        AND
-          -reset scan ctr ku451
-          -clock p0-1 gated
-          +temp flt clock[0..1]
+    -temp ku271 clock next[0..1]
+-temp ku271 clock next[0..1]
+  NOR
+    AND
+      +st bus[62..63](RS_RT)
+      +gt st bus to scan ctr
+    AND
+      -flt clk time lth[2..1]
+      +clock p0 gated
+      -flt clk time lth[3]
+    AND
+      -reset scan ctr ku451
+      -clock p0-1 gated
+      NOT
+        -temp ku271 clock next[0..1]
 -flt clock bit[0..1]
   NOT
     +temp flt clock[0..1]
@@ -816,7 +1011,8 @@ DECODE
       +temp cbis[0]
       -clock p1 gated
     AND
-      +flt clock time latch[0]
+      NOT
+        -flt clk time lth[0]
       +clock p0 gated
 -flt clk time lth[1..3]
   NOR
@@ -824,7 +1020,8 @@ DECODE
       +temp cbis[3..1]
       -clock p1 gated
     AND
-      +flt clock time latch[1..3]
+      NOT
+        -flt clk time lth[1..3]
       +clock p0 gated
 
 -flt clock time 1 tgr
@@ -1160,7 +1357,8 @@ DECODE
         NAND
           -scc tgr
           -clock p0-1
-      +scan ctr ctrl lth
+      NOT
+        -scan ctr ctrl lth
 
 +start ros test lth
   NOT
@@ -1298,7 +1496,8 @@ DECODE
     AND
       -mach reset O not log reset
       -scan reset + hard stop reset
-      +soros tgr
+      NOT
+        -soros tgr
 
 +temp ku351 error or split request
   ORNOT
@@ -1402,7 +1601,8 @@ DECODE
         NAND
           -sync trigger
           +clock p0-2
-      +sync latch
+      NOT
+        -sync latch
 
 -ton sample e reg error trigger
   NAND
@@ -1431,7 +1631,8 @@ DECODE
           +pulsed split log
           +hard stop + scan reset
       -mach reset O not log reset
-      +sync trigger
+      NOT
+        -sync trigger
 
 -inhibit if padd gate
   NAND
@@ -1655,12 +1856,11 @@ NOCLOCK
       +gt st to mcw
       +clock p0-2
 
-+set addr seq 3
++set addr seq[3]
   ORNOT
     -set addr seq to 23 ros(DR)
     -scan set addr seq reg eq 15(DR)
     -scan set addr seq reg eq 7(DR)
-    -temp ku411 1f bb
 
 ; PAGE KU431
 
@@ -2200,19 +2400,27 @@ NOCLOCK
 CLOCK
 
 +clock p0 + p2
-  ORNOT
-    -clock p1
-    -clock p0-1
+  NOT
+    NOT
+      +temp post td
 
 -clock p1 gated
-  NOT
-    +clock p0 gated
+  NAND
+    +temp post td
+    -temp
+      NAND
+        -scan cntr cntl lth a
+        +start count on addr comp
 +clock p0 gated
-  NOT
-    -clock p0-1 gated
+  AND
+    +temp post td
+    -temp
+      NAND
+        -scan cntr cntl lth a
+        +start count on addr comp
 -clock p0-1 gated
   NAND
-    +clock p0-2
+    +temp post td
     -temp
       NAND
         -scan cntr cntl lth a
@@ -2220,16 +2428,18 @@ CLOCK
 
 -clock p1
   NOT
-    +clock p0
+    +temp post td
 +clock p0
   NOT
-    -clock p0-1
+    NOT
+      +temp post td
 -clock p0-1
   NOT
-    +clock p0-2
+    +temp post td
 +clock p0-2
   NOT
-    -clock p0-3
+    NOT
+      +temp post td
 -clock p0-3
   NOT
     +temp post td
@@ -2442,3 +2652,22 @@ NOCLOCK
           NOT
             -logout se 1 stopped(WA)
 
+
+NOCLOCK
+; Digital capture/commit adaptation of the not-clock capture / next-clock transfer
+; described by FETOM. These flags are emulator state, not named ALD wires.
+; Each subtract request commits once; set/load/hold use the same clock snapshot.
++addr seq captured
+  AND
+    +gt addr seq to sctr lth
+    OR
+      -clock p1
+      +addr seq captured
++addr seq committed
+  AND
+    +gt addr seq to sctr lth
+    OR
+      AND
+        +addr seq captured
+        +clock p0-2
+      +addr seq committed

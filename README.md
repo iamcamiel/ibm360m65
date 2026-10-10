@@ -1,6 +1,37 @@
 # ibm360m65
 IBM360 Model 65 CPU Emulation
 
+FPGA revision 1.15 repairs the logout sequence and CAS storage clock, and
+reconnects AP581's PADDA bit 58 to RT845's hot-one input. The KU controls use
+coherent clock snapshots and a single capture/commit per sequencer decrement;
+set/load operations use the same snapshot. KD's P4 uses a 40 ns delay from
+P0-no-inhibit, retaining storage requests during sequence inhibition. That
+input is inferred from the documented timing and native regression because
+the source wire at KD901 D02 is illegible. The capture/commit flags adapt the
+physical latch sequence to the finite two-pass emulator; they are not ALD
+wire names. Full physical equivalence and routed timing remain unproved.
+A fresh single-DIAG trial completes CAS and reaches a WAIT PSW with healthy
+adder checks. A separate real-error DIAG reaches an attributed forced ROS019
+transfer and the sticky fault stop. Global scheduling and check guards remain
+enabled. Hardware requires a newly validated revision 1.15 bitstream; the Pi
+remains off.
+
+FPGA revision 1.13 corrects DR201's left/right word-scan gates to use the
+ROS register pins and shared scan-field register enable shown at 6L and 6N.
+The gates intentionally decode only their wired bits, rather than exact
+five-bit latch values. Generated C++ and VHDL regressions each cover 2,048
+register/latch/enable combinations. This includes the earlier DS branch and
+ROS-image corrections; complete logout remains under investigation. Hardware
+requires a newly validated revision 1.13 bitstream; the Pi remains off.
+
+FPGA revision 1.12 reconnects DS171's active-low `SET ROSAR 11` output to
+DS111's fast-input branch OR, as shown at DS111 input D11. This restores
+J40-J44 branching, including DIAG's J43 transition from B28 to B2B. The
+isolated instruction trace reaches maintenance control and SOROS after this
+repair; a completed logout transfer has not yet been established. It includes
+the revision 1.11 ROS corrections below. Hardware requires a new validated
+revision 1.12 bitstream; the Pi remains off.
+
 FPGA revision 1.11 reconciles the emulator and VHDL ROS images with the verified
 QZ listings. It repairs 14 differing addresses and the unused-word formatting
 at `528`, including the `31C` next-address base, `89A` C-field boundary, `D97`
@@ -9,6 +40,14 @@ same 2,816 words and decode the same controls. Word `F21` uses E0 from the May
 1970 QZ listing; the later March 1972 QQ441 CAS revision prints an E operation.
 The scan/CAS comparison notes retain that revision distinction. A matching
 revision 1.11 bitstream is required for hardware use.
+
+`python tools/test_ros_image.py --output gen/ros-image-tests --ghdl PATH`
+checks the canonical ROS field layout, all 2,816 words through the production
+C++ loader, decoded controls, FPGA revision compatibility, and every listed
+address through the VHDL ROS memory, including halt and reset. Add
+`--qz "PATH/ROS words.json"` to compare against the independent QZ transcription.
+The test uses an isolated loader fixture; it does not run the full CPU or
+deploy a bitstream.
 
 FPGA revision 1.10 corrects the KW093 logout-delay single shots: the falling
 input after an error stop triggers each negative pulse, and the timers advance
@@ -429,7 +468,7 @@ package has a zero date so an unstamped build is rejected.
 
 The hardware emulator reports the FPGA revision and timestamp before issuing
 CPU register commands. It requires interface major 1, interface minor at least
-5, FPGA revision exactly 1.11, the metadata signature and a valid timestamp.
+5, FPGA revision exactly 1.15, the metadata signature and a valid timestamp.
 Legacy bitstreams that returned 1.1 from unused addresses are rejected. The
 build date is diagnostic; matching dates alone never establish compatibility.
 FPGA 1.4 corrects measured active-high Power On/Off, LOAD, INTERRUPT and LOCAL

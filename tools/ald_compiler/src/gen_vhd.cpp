@@ -217,7 +217,7 @@ continue;
 				while (l.ident <= last_ident) {
 					if (stack[last_ident] == "ORNOT" || stack[last_ident] == "ANDNOT") {
 						vhd_stream(sec) << "))";
-					} else if (stack[last_ident] != "NOT" && stack[last_ident] != "" && stack[last_ident] != "TEMP") {
+					} else if (stack[last_ident] != "" && stack[last_ident] != "TEMP") {
 						vhd_stream(sec) << ")";
 					}
 					stack[last_ident] = "";
@@ -291,7 +291,8 @@ continue;
 					else if (l.line == "NAND" || l.line == "NOR")
 						vhd_stream(sec) << " not (";
 					else if (l.line == "NOT")
-						vhd_stream(sec) << " not ";
+						// Parenthesize the operand: consecutive unary NOTs are invalid VHDL.
+						vhd_stream(sec) << " not (";
 					else if (l.line == "0")
 						vhd_stream(sec) << "('0'";
 					else if (l.line == "1")
@@ -310,7 +311,7 @@ continue;
 			while (0 <= last_ident) {
 				if (stack[last_ident] == "ORNOT" || stack[last_ident] == "ANDNOT") {
 					vhd_stream(sec) << "))";
-				} else if (stack[last_ident] != "NOT" && stack[last_ident] != "" && stack[last_ident] != "TEMP") {
+				} else if (stack[last_ident] != "" && stack[last_ident] != "TEMP") {
 					vhd_stream(sec) << ")";
 				}
 				stack[last_ident] = "";

@@ -1596,12 +1596,20 @@ DECODE
   NOT
     +temp dr201 sf[8]; 
    
+; DR201 6L: B02=+REG35, B03=-REG32, B04=scan-fields ROSR gate.
+; This is a partial register decode, not a latched five-bit SG1 decode.
 -scan out right word ros
-  NOT
-    +temp dr201 sg[1];
+  NAND
+    +gate scan fields rosr
+    -ros reg bit[32](RY)
+    +ros reg bit[35](RY)
+; DR201 6N: D13=-REG32, B09=-REG35, D09=ROSR gate, B08=+REG33.
 -scan out left word ros
-  NOT
-    +temp dr201 sg[4];
+  NAND
+    +gate scan fields rosr
+    -ros reg bit[32](RY)
+    -ros reg bit[35](RY)
+    +ros reg bit[33](RY)
 -set pass+fail tgr ros
   NOT
     +temp dr201 sg[8];
