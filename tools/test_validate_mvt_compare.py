@@ -78,6 +78,13 @@ class ComparisonStartupTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, 'comparison-write'):
             self.validation.observe()
 
+    def test_taken_ce_ros_branch_stops_validation(self):
+        (self.validation.run / 'm65.log').write_text(
+            'M65CEBRANCH request_rosar=234 from=567 to=019 runtime=0.123\n'
+            'M65FAULT reason=ce-ros-branch runtime=0.123 ROSAR=019 IC=000000\n')
+        with self.assertRaisesRegex(RuntimeError, 'ce-ros-branch'):
+            self.validation.observe()
+
     def test_session_records_ce_observation_without_pausing(self):
         session = Session(SimpleNamespace(run_dir=self.validation.run, auto_mft=True))
         session.observe_fault('M65FAULT reason=ce-check runtime=0.000000200 ')

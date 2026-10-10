@@ -84,6 +84,9 @@ they change an earlier authorization or constraint. Leave commits to the user.
   the ALD and let microcode determine when to branch on checks. Do not introduce
   IC parity power-up presets to satisfy an immediate host CE guard. Actual
   comparison mismatches still require a stop and investigation.
+- A verified error-caused ROS transfer into the logout microprogram is also a
+  diagnostic stop. Require accepted error-request attribution and the actual
+  KU511/DS/RX force-address transfer to ROS019; lamps or ROS019 alone do not qualify.
 - MVT and ISE are independent. FPGA work must not modify the active MVT sources,
   executable, private disks, controller or heartbeat, or send guest commands.
 - The user authorized a fresh ISK-repaired boot in `gen/mvt-ald-isk-clean`, using

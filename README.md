@@ -1,13 +1,26 @@
 # ibm360m65
 IBM360 Model 65 CPU Emulation
 
+FPGA revision 1.8 corrects RX081's combination of the active-low power-reset
+and scan-set inputs for ROSAR bit 8. Either request can set that bit; the
+previous transcription required both and forced `003` instead of `00B` during
+power-on reset. The software host now initializes LOAD and INTERRUPT released
+and drives LOAD high while pressed, matching the ALD's active-high pressed flags.
+Its synthetic power-on reset lasts 5 us, beyond the console's 3.2 us single-shot,
+and startup advances 100 us before accepting IPL so the `00B -> 02B -> 839`
+local-store clearing loop can finish and reach the manual-control loop.
+The current live comparison and deployed FPGA remain separate preserved trials;
+these source changes alone do not establish successful IPL or a new deployment.
+
 FPGA revision 1.7 corrects RW101 storage-key parity, RF801 parity when replacing
 F bits 4-7, and AS034's positive complement of the negative transmit XOR result.
 CA ALD source has been restored to its committed version, including its original
 load/reset clocking and latch definitions. IC latches retain the generated default initialization; the added
 software parity preset has been removed. CE indicators remain enabled and are
 handled by the ALD/microcode. An asserted indicator alone does not trigger a
-host diagnostic stop; actual comparison mismatches still do.
+host diagnostic stop; actual comparison mismatches still do. A verified
+error-caused hardware logout transfer to ROS019 also captures state and stops
+for investigation; manual logout and unrelated visits to ROS019 do not qualify.
 Revision 1.6 additionally corrects the AP793 aggregate half-sum detector
 to the original drawing's ODD function. Its complemented XOR falsely raised
 a CE check with all eight individual check lines clear. Revision 1.5 corrected

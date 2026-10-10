@@ -39,7 +39,7 @@ int main(int argc,char**argv){
 }
 '''
 source=source.replace('GUARD_FUNCTIONS','\n'.join(function_source('360_ros.cpp',marker) for marker in
- ['bool m65_fault_pending()', 'void m65_latch_fault(', 'void single_cycle()'])
+ ['bool m65_fault_pending()', 'void m65_latch_fault(', 'bool m65_ce_ros_branch_taken(bool reset) {', 'void single_cycle()'])
  .replace('process_ald();','fixture_settle();').replace('process_ald_clock();','fixture_clock();'))
 (OUT/'fixture.cpp').write_text(source)
 (OUT/'build.cmd').write_text(f'@echo off\ncall "{VCVARS}" >nul\ncl /nologo /std:c++17 /EHsc /DCOMPARE_M65 /I"{ROOT / "hercules"}" /I"{ROOT / "gen/ald"}" fixture.cpp /Fe:fixture.exe\nexit /b %errorlevel%\n')

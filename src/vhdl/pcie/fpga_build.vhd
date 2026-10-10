@@ -1,12 +1,12 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
--- FPGA revision 1.7 corrects RW101/RF801 parity and the AS034 XOR complement.
+-- FPGA revision 1.8 corrects RX081 power-reset/scan ROSAR bit-8 selection.
 -- Interface 1.5 corrects the active-high panel pressed flags.
 -- stamp_fpga_build.tcl fills the UTC timestamp before synthesis.
 package fpga_build is
   constant M65_INTERFACE_VERSION : std_logic_vector(31 downto 0) := x"00010005";
-  constant M65_FPGA_VERSION : std_logic_vector(31 downto 0) := x"00010007";
+  constant M65_FPGA_VERSION : std_logic_vector(31 downto 0) := x"00010008";
   constant M65_BUILD_MAGIC : std_logic_vector(31 downto 0) := x"4D363542"; -- M65B
   constant M65_BUILD_DATE : std_logic_vector(31 downto 0) := x"00000000"; -- YYYYMMDD BCD, UTC
   constant M65_BUILD_TIME : std_logic_vector(31 downto 0) := x"00000000"; -- 00HHMMSS BCD, UTC

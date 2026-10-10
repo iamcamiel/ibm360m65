@@ -1508,12 +1508,13 @@ lf = fopen("m65.log", "w");
 
     full_init();
     write_m65_reg(M65_REG_CFG, sysblk.mainsize - 1);
-    for (int i = 0; i < 50; i++) {
+    for (int i = 0; i < M65_NATIVE_STARTUP_CYCLES / 20; i++) {
         twenty_cycle(&regs);
     }
     D_fprintf(lf, "M65TIMER disable_key=%d clock_enable=%d\n",
         newstate.PK_PL.disable_timer_key, newstate.KW._disable_time_clock);
     D_fprintf(lf, "\n\nINIT COMPLETE\n\n\n");
+    fflush(lf);
 #endif
     if (oldregs)
     {
