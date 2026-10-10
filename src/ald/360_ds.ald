@@ -438,6 +438,7 @@ DECODE
 
 +rosar 11 fast input 11
   ORNOT
+    -set rosar 11
     AND
       -temp
         NAND
@@ -1288,9 +1289,10 @@ DECODE
   NOR
     AND
       -roslth eq 1[47..54](EF)
-      -temp smp
+      +ros back up reg 47-68 sample
     AND
-      +temp smp
+      NOT
+        +ros back up reg 47-68 sample
       -ind roslth[47..54]
 -ind roslth[47..54]
   NOT
@@ -1300,9 +1302,10 @@ DECODE
   NOR
     AND
       -roslth eq 1[55..68](EF)
-      -temp smp
+      +ros back up reg 47-68 sample
     AND
-      +temp smp
+      NOT
+        +ros back up reg 47-68 sample
       -ind roslth[55..68]
 -ind roslth[55..68]
   NOT
@@ -1312,9 +1315,10 @@ DECODE
   NOR
     AND
       -roslth eq 1[85](EF)
-      -temp smp
+      +ros back up reg 47-68 sample
     AND
-      +temp smp
+      NOT
+        +ros back up reg 47-68 sample
       -ind roslth[85]
 -ind roslth[85]
   NOT
@@ -1433,15 +1437,15 @@ NOCLOCK
 -temp ros par ck 43-68
   NOT
     +temp ros par ck 43-68
+; FETOM Figure 2-13B: parity of one coherent held backup snapshot.
 +temp ros par ck 43-68
-  NAND
+  NOR
     AND
-      +temp
-        XOR
-          +bits 43-46 odd(DR)
-          +ros bit[47..54]
-          +ros parity[55..68]
-          +ros 85 par bit
+      XOR
+        +ros backup bit[43..46](DR)
+        +ros bit[47..54]
+        +ros parity[55..68]
+        +ros 85 par bit
       -temp rpc43-68
     AND
       -temp rpc43-68

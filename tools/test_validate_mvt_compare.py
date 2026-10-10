@@ -9,6 +9,7 @@ import unittest
 from unittest.mock import patch
 
 from validate_mvt_compare import Validation
+from software_ipl import Session
 
 
 class ComparisonStartupTests(unittest.TestCase):
@@ -65,6 +66,38 @@ class ComparisonStartupTests(unittest.TestCase):
         (self.validation.run / 'm65.log').write_text('M65TIMER disable_key=0 clock_enable=1\n')
         with self.assertRaisesRegex(RuntimeError, 'not disabled'):
             self.validation.observe()
+
+    def test_ce_indicator_alone_does_not_stop_validation(self):
+        (self.validation.run / 'm65.log').write_text(
+            'M65FAULT reason=ce-check runtime=0.000000200 ROSAR=003 IC=000000\n')
+        self.validation.observe()
+
+    def test_comparison_fault_still_stops_validation(self):
+        (self.validation.run / 'm65.log').write_text(
+            'M65FAULT reason=comparison-write runtime=0.000000200 ROSAR=003 IC=000000\n')
+        with self.assertRaisesRegex(RuntimeError, 'comparison-write'):
+            self.validation.observe()
+
+    def test_taken_ce_ros_branch_stops_validation(self):
+        (self.validation.run / 'm65.log').write_text(
+            'M65CEBRANCH request_rosar=234 from=567 to=019 runtime=0.123\n'
+            'M65FAULT reason=ce-ros-branch runtime=0.123 ROSAR=019 IC=000000\n')
+        with self.assertRaisesRegex(RuntimeError, 'ce-ros-branch'):
+            self.validation.observe()
+
+    def test_session_records_ce_observation_without_pausing(self):
+        session = Session(SimpleNamespace(run_dir=self.validation.run, auto_mft=True))
+        session.observe_fault('M65FAULT reason=ce-check runtime=0.000000200 ')
+        self.assertEqual(session.ce_checks, 1)
+        self.assertIsNone(session.first_fault)
+        self.assertTrue(session.controls.empty())
+        self.assertTrue(session.auto)
+        self.assertFalse((self.validation.run / 'first-failure.txt').exists())
+        session.observe_fault('M65FAULT reason=comparison-write runtime=0.000000210 ')
+        self.assertIn('comparison-write', session.first_fault)
+        self.assertEqual(session.controls.get_nowait(), 'stop')
+        self.assertFalse(session.auto)
+        self.assertTrue((self.validation.run / 'first-failure.txt').exists())
 
     @patch('validate_mvt_compare.http')
     def test_timer_confirmation_is_required_before_answering_nip(self, request):

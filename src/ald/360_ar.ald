@@ -993,3 +993,6 @@ DECODE
       NAND
         +rosdr bit[81](RY)
         +gt emit to sibb(DR)
+; AP901 ROS parity includes decoded bits 74-77 (FETOM Figure 2-13C).
++ros backup decode bit[74..77]
+  +reg decode bit[74..77]

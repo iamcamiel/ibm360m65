@@ -1,0 +1,5 @@
+vhdl work "../src/vhdl/cdc_mailbox.vhd"
+vhdl work "../src/vhdl/pcie/fpga_build.vhd"
+vhdl work "../src/vhdl/blinken.vhd"
+vhdl work "../src/vhdl/pcie/EP_MEM.vhd"
+vhdl work "test_panel_snapshot.vhd"

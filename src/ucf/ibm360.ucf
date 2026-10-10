@@ -52,15 +52,35 @@ NET led_10(9) LOC="AE24";
 
 NET  CLK_FPGA_N           LOC="K19";   # Bank 3, Vcco=2.5V, No DCI      
 NET  CLK_FPGA_P           LOC="L19";   # Bank 3, Vcco=2.5V, No DCI      
-NET "clk" PERIOD = 5ns;
-NET "hclk"  PERIOD = 10ns;
-# hclk is an ALD clock enable. Allow placement-based register replication
-# to distribute its loads; the consuming registers still use the 5 ns clk.
-NET "hclk" MAX_FANOUT = REDUCE;
-# Distribute the registered ROS address into local control-store logic loads.
-# XST also receives MAX_FANOUT=64 on the generated RX register vector.
-NET "ald/RX/P_temp1203<*>" MAX_FANOUT = REDUCE;
-NET "dclk" PERIOD = 5120ns;
+NET "clk200" PERIOD = 5ns;
+NET "clk" PERIOD = 10ns;
+# Display logic now uses clk with a local enable every 512 edges.
+# Mailboxes hold the complete bus until the capture acknowledgement returns.
+# Only request/ack first-stage inputs are excluded from synchronous timing.
+# Bus delay is still bounded independently of the unrelated clock phases.
+INST "pcie/app/PIO_interface/PIO_EP_ins/EP_MEM/EP_MEM_inst/cpu_to_pcie/source_hold*" TNM = "CDC_CMD_HOLD";
+INST "pcie/app/PIO_interface/PIO_EP_ins/EP_MEM/EP_MEM_inst/cpu_to_pcie/destination_data*" TNM = "CDC_CMD_CAPTURE";
+TIMESPEC "TS_CDC_CMD_DATA" = FROM "CDC_CMD_HOLD" TO "CDC_CMD_CAPTURE" 8 ns DATAPATHONLY;
+INST "pcie/app/PIO_interface/PIO_EP_ins/EP_MEM/EP_MEM_inst/pcie_to_cpu/source_hold*" TNM = "CDC_RESP_HOLD";
+INST "pcie/app/PIO_interface/PIO_EP_ins/EP_MEM/EP_MEM_inst/pcie_to_cpu/destination_data*" TNM = "CDC_RESP_CAPTURE";
+TIMESPEC "TS_CDC_RESP_DATA" = FROM "CDC_RESP_HOLD" TO "CDC_RESP_CAPTURE" 8 ns DATAPATHONLY;
+INST "pcie/app/PIO_interface/PIO_EP_ins/EP_MEM/EP_MEM_inst/panel_to_pcie/source_hold*" TNM = "CDC_PANEL_HOLD";
+INST "pcie/app/PIO_interface/PIO_EP_ins/EP_MEM/EP_MEM_inst/panel_to_pcie/destination_data*" TNM = "CDC_PANEL_CAPTURE";
+TIMESPEC "TS_CDC_PANEL_DATA" = FROM "CDC_PANEL_HOLD" TO "CDC_PANEL_CAPTURE" 8 ns DATAPATHONLY;
+INST "pcie/app/PIO_interface/PIO_EP_ins/EP_MEM/EP_MEM_inst/*/request_toggle" TNM = "CDC_REQUEST_SOURCE";
+INST "pcie/app/PIO_interface/PIO_EP_ins/EP_MEM/EP_MEM_inst/*/request_meta" TNM = "CDC_REQUEST_FIRST";
+TIMESPEC "TS_CDC_REQUEST" = FROM "CDC_REQUEST_SOURCE" TO "CDC_REQUEST_FIRST" TIG;
+INST "pcie/app/PIO_interface/PIO_EP_ins/EP_MEM/EP_MEM_inst/*/acknowledge_toggle" TNM = "CDC_ACK_SOURCE";
+INST "pcie/app/PIO_interface/PIO_EP_ins/EP_MEM/EP_MEM_inst/*/ack_meta" TNM = "CDC_ACK_FIRST";
+TIMESPEC "TS_CDC_ACK" = FROM "CDC_ACK_SOURCE" TO "CDC_ACK_FIRST" TIG;
+# This common bridge reset asserts asynchronously. Each domain holds its
+# state reset for two local edges after release, including the PIO controller.
+NET "pcie/cdc_reset_i" TIG;
+# First stages of single-bit PCIe indicators and external panel inputs only.
+INST "pcie_status_meta*" TNM = "PCIE_STATUS_FIRST";
+TIMESPEC "TS_PCIE_STATUS" = TO "PCIE_STATUS_FIRST" TIG;
+INST "blinken/switch_meta*" TNM = "PANEL_INPUT_FIRST";
+TIMESPEC "TS_PANEL_INPUT" = TO "PANEL_INPUT_FIRST" TIG;
 
 
 ###############################################################################

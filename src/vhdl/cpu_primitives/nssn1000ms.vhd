@@ -22,7 +22,6 @@ USE ieee.std_logic_arith.all;
 
 entity NSSN1000MS is
     Port ( clk : in  STD_LOGIC;
-			  hclk : in STD_LOGIC;
 			  rst : in STD_LOGIC;
 			  hlt : in STD_LOGIC;
 		     i : in STD_LOGIC;
@@ -41,7 +40,7 @@ begin
 				o<='1';
 				cnt <= 0;
 				triggered <= '0';
-			elsif (hlt='0' and hclk='1') then
+			elsif (hlt='0') then
 				if (cnt = 0) then
 					if (i='1') then
 						triggered <= '0';

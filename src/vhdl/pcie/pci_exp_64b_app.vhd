@@ -104,6 +104,9 @@ port  (
   cfg_lstatus               : in std_logic_vector(15 downto 0);
   cfg_lcommand              : in std_logic_vector(15 downto 0);
   
+    core_clk_i, cdc_reset_i : in std_logic;
+    panel_snapshot_i : in std_logic_vector(735 downto 0) := (others => '0');
+    panel_valid_i : in std_logic := '0';
     P_reg_io_int : buffer STD_LOGIC_VECTOR (31 downto 0);
     P_reg_io_resp : buffer STD_LOGIC_VECTOR (31 downto 0);
     P_reg_se_rdata_hi : buffer STD_LOGIC_VECTOR (31 downto 0);
@@ -122,53 +125,7 @@ end pci_exp_64b_app;
 
 architecture endpoint_blk_plus_v1_15 of pci_exp_64b_app is
 
-component PIO is
 
-port (
-
-  trn_clk                : in std_logic;
-  trn_reset_n            : in std_logic;
-  trn_lnk_up_n           : in std_logic;
-
-  trn_td                 : out std_logic_vector((64 - 1) downto 0);
-  trn_trem_n             : out std_logic_vector(7 downto 0);
-  trn_tsof_n             : out std_logic;
-  trn_teof_n             : out std_logic;
-  trn_tsrc_rdy_n         : out std_logic;
-  trn_tsrc_dsc_n         : out std_logic;
-  trn_tdst_rdy_n         : in std_logic;
-  trn_tdst_dsc_n         : in std_logic;
-
-  trn_rd                 : in std_logic_vector((64 - 1) downto 0);
-  trn_rrem_n             : in std_logic_vector(7 downto 0);
-  trn_rsof_n             : in std_logic;
-  trn_reof_n             : in std_logic;
-  trn_rsrc_rdy_n         : in std_logic;
-  trn_rsrc_dsc_n         : in std_logic;
-  trn_rbar_hit_n         : in std_logic_vector(6 downto 0);
-  trn_rdst_rdy_n         : out std_logic;
-
-  cfg_to_turnoff_n       : in std_logic;
-  cfg_turnoff_ok_n       : out std_logic;
-  cfg_completer_id       : in std_logic_vector(15 downto 0);
-  cfg_bus_mstr_enable    : in std_logic;
-  
-    P_reg_io_int : buffer STD_LOGIC_VECTOR (31 downto 0);
-    P_reg_io_resp : buffer STD_LOGIC_VECTOR (31 downto 0);
-    P_reg_se_rdata_hi : buffer STD_LOGIC_VECTOR (31 downto 0);
-    P_reg_se_rdata_lo : buffer STD_LOGIC_VECTOR (31 downto 0);
-    P_reg_se_resp : buffer STD_LOGIC_VECTOR (31 downto 0);
-    P_reg_se_size : buffer STD_LOGIC_VECTOR (31 downto 0);
-    P_reg_ext : in STD_LOGIC_VECTOR (31 downto 0);
-    P_reg_io_cmd : in STD_LOGIC_VECTOR (31 downto 0);
-    P_reg_se_addr : in STD_LOGIC_VECTOR (31 downto 0);
-    P_reg_se_cmd : in STD_LOGIC_VECTOR (31 downto 0);
-    P_reg_se_wdata_hi : in STD_LOGIC_VECTOR (31 downto 0);
-    P_reg_se_wdata_lo : in STD_LOGIC_VECTOR (31 downto 0)
-
-);
-
-end component;
 
 -- Local wires 
 
@@ -211,7 +168,7 @@ begin
 
 -- Programmable I/O Module
 
-PIO_interface : PIO 
+PIO_interface : entity work.PIO
 
 port map (
 
@@ -243,6 +200,8 @@ port map (
   cfg_bus_mstr_enable => cfg_bus_mstr_enable  -- I
 ,
 		
+    core_clk_i => core_clk_i, cdc_reset_i => cdc_reset_i,
+    panel_snapshot_i => panel_snapshot_i, panel_valid_i => panel_valid_i,
     P_reg_io_int => P_reg_io_int,
 	 P_reg_io_resp => P_reg_io_resp,
     P_reg_se_rdata_hi => P_reg_se_rdata_hi,

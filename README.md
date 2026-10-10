@@ -1,6 +1,167 @@
 # ibm360m65
 IBM360 Model 65 CPU Emulation
 
+FPGA revision 1.15 repairs the logout sequence and CAS storage clock, and
+reconnects AP581's PADDA bit 58 to RT845's hot-one input. The KU controls use
+coherent clock snapshots and a single capture/commit per sequencer decrement;
+set/load operations use the same snapshot. KD's P4 uses a 40 ns delay from
+P0-no-inhibit, retaining storage requests during sequence inhibition. That
+input is inferred from the documented timing and native regression because
+the source wire at KD901 D02 is illegible. The capture/commit flags adapt the
+physical latch sequence to the finite two-pass emulator; they are not ALD
+wire names. Full physical equivalence and routed timing remain unproved.
+A fresh single-DIAG trial completes CAS and reaches a WAIT PSW with healthy
+adder checks. A separate real-error DIAG reaches an attributed forced ROS019
+transfer and the sticky fault stop. Global scheduling and check guards remain
+enabled. Hardware requires a newly validated revision 1.15 bitstream; the Pi
+remains off.
+
+FPGA revision 1.13 corrects DR201's left/right word-scan gates to use the
+ROS register pins and shared scan-field register enable shown at 6L and 6N.
+The gates intentionally decode only their wired bits, rather than exact
+five-bit latch values. Generated C++ and VHDL regressions each cover 2,048
+register/latch/enable combinations. This includes the earlier DS branch and
+ROS-image corrections; complete logout remains under investigation. Hardware
+requires a newly validated revision 1.13 bitstream; the Pi remains off.
+
+FPGA revision 1.12 reconnects DS171's active-low `SET ROSAR 11` output to
+DS111's fast-input branch OR, as shown at DS111 input D11. This restores
+J40-J44 branching, including DIAG's J43 transition from B28 to B2B. The
+isolated instruction trace reaches maintenance control and SOROS after this
+repair; a completed logout transfer has not yet been established. It includes
+the revision 1.11 ROS corrections below. Hardware requires a new validated
+revision 1.12 bitstream; the Pi remains off.
+
+FPGA revision 1.11 reconciles the emulator and VHDL ROS images with the verified
+QZ listings. It repairs 14 differing addresses and the unused-word formatting
+at `528`, including the `31C` next-address base, `89A` C-field boundary, `D97`
+missing cell/group boundaries and `E3F` valid flag. Both images now contain the
+same 2,816 words and decode the same controls. Word `F21` uses E0 from the May
+1970 QZ listing; the later March 1972 QQ441 CAS revision prints an E operation.
+The scan/CAS comparison notes retain that revision distinction. A matching
+revision 1.11 bitstream is required for hardware use.
+
+`python tools/test_ros_image.py --output gen/ros-image-tests --ghdl PATH`
+checks the canonical ROS field layout, all 2,816 words through the production
+C++ loader, decoded controls, FPGA revision compatibility, and every listed
+address through the VHDL ROS memory, including halt and reset. Add
+`--qz "PATH/ROS words.json"` to compare against the independent QZ transcription.
+The test uses an isolated loader fixture; it does not run the full CPU or
+deploy a bitstream.
+
+FPGA revision 1.10 corrects the KW093 logout-delay single shots: the falling
+input after an error stop triggers each negative pulse, and the timers advance
+once per 10 ns core edge rather than in both Boolean passes. The new 5.5 ms
+primitive ends its pulse even when its triggering input remains low. The
+finite two-pass Boolean schedule, parity-check equations and latch initialization
+are unchanged. A new validated bitstream is required before hardware use;
+this source repair alone does not imply FPGA deployment or successful logout.
+
+FPGA revision 1.9 corrects AP801 qualified half-sum aggregation, RY/DS/AP ROS
+parity equations, and RT771 PADDA parity selection. ROS backup groups share
+one sampled capture control and the checker evaluates their held data from
+one snapshot. CA241 restores the decoded DR191 adjustment when microcode
+loads IC bits 21-22; its hold term uses that same load control. No IC parity
+power-up preset is added. The two finite Boolean passes and clock phases
+remain unchanged. These source corrections require new FPGA validation and
+a matching bitstream before hardware use; no deployment is implied.
+
+FPGA revision 1.8 corrects RX081's combination of the active-low power-reset
+and scan-set inputs for ROSAR bit 8. Either request can set that bit; the
+previous transcription required both and forced `003` instead of `00B` during
+power-on reset. The software host now initializes LOAD and INTERRUPT released
+and drives LOAD high while pressed, matching the ALD's active-high pressed flags.
+Its synthetic power-on reset lasts 5 us, beyond the console's 3.2 us single-shot,
+and startup advances 100 us before accepting IPL so the `00B -> 02B -> 839`
+local-store clearing loop can finish and reach the manual-control loop.
+The current live comparison and deployed FPGA remain separate preserved trials;
+these source changes alone do not establish successful IPL or a new deployment.
+
+FPGA revision 1.7 corrects RW101 storage-key parity, RF801 parity when replacing
+F bits 4-7, and AS034's positive complement of the negative transmit XOR result.
+Revision 1.7 restored the CA ALD load/reset clocking and latch definitions.
+Revision 1.9 adds only the verified microcode parity adjustment described above.
+IC latches retain the generated default initialization; the added
+software parity preset has been removed. CE indicators remain enabled and are
+handled by the ALD/microcode. An asserted indicator alone does not trigger a
+host diagnostic stop; actual comparison mismatches still do. A verified
+error-caused hardware logout transfer to ROS019 also captures state and stops
+for investigation; manual logout and unrelated visits to ROS019 do not qualify.
+Revision 1.6 additionally corrects the AP793 aggregate half-sum detector
+to the original drawing's ODD function. Its complemented XOR falsely raised
+a CE check with all eight individual check lines clear. Revision 1.5 corrected
+the AP four-bit odd-count predictor polarities and
+full-sum error detection. FETOM 2-84/2-85 specifies odd data-plus-parity as valid;
+the original AP394 drawing ends in an even detector. The ALD transcription had
+reversed these functions. C++ CE checks are enabled (SW7 bit 11 high), and SSK
+comparison records use 2 KiB key-block addresses rather than within-block offsets.
+The existing FPGA 1.4 trial and paused comparison are preserved; source regression
+results do not establish a newly deployed FPGA or completed MVT validation.
+
+The FPGA core uses a 100 MHz PLL clock derived from the board's 200 MHz input.
+There is no `hclk` enable. Each 10 ns rising edge stores the first NOCLOCK pass
+and updates CLOCK state, delay primitives and CPU memories. A second NOCLOCK
+pass evaluates combinationally from that first-pass snapshot, with separate
+first-pass connections between sections. CLOCK logic reads the prior settled
+state. External inputs for the second pass are sampled on the same edge, so
+halt and synchronous reset retain their behavior. Both Boolean passes must
+fit within the 10 ns period; there is no falling-edge update or 5 ns half-cycle
+constraint. The oscillator retains its 200 ns cycle and 10 ns phase spacing.
+Regenerate VHDL with the updated ALD compiler using `-O1`.
+The C++ emitter and its two-pass schedule are unchanged. `tools/test_nohclk.vhd` checks oscillator and
+delay timing, consecutive local-store updates, halt and reset. Whole-CPU
+validation remains a separate check.
+
+`tools/test_ald_settle.py` compares generated VHDL against generated C++ using
+`process_ald()`, `process_ald_clock()`, a state copy and the second
+`process_ald()`. Its 1,024-cycle fixture covers cross-section feedback, vectors,
+aliasing, CLOCK sampling, reset, halt and changes to live external inputs.
+`tools/audit_ald_schedule.py gen/ald` checks all generated second-pass Boolean
+equations and snapshot connections. These checks do not establish full CPU
+equivalence or SPECIAL primitive equivalence to the software model.
+
+The display state machine uses the core clock with a local enable every 512
+edges (5.12 us), preserving its serial scan rate without an internal `dclk`.
+External panel inputs pass through two synchronizer stages before sampling.
+PCIe still uses its independent 62.5 MHz transaction clock. `CDC_MAILBOX`
+transfers complete 192-bit register snapshots with request/acknowledge toggles,
+two-stage control synchronizers, and an extra capture edge. CPU command bundles
+must settle for two core edges before publication. Each BAR write remains busy
+until its response snapshot reaches the CPU, preserving data-before-response
+ordering and byte-enable read-modify-write behavior. Common bridge reset clears
+both ends on PCIe reset/link loss or core clock lock loss; release is synchronized
+in each domain. Panel power-off resets the ALD CPU without clearing host configuration.
+Mailbox readiness and PCIe busy control use those local reset-release stages;
+the raw shared reset does not directly gate synchronous control logic.
+
+The UCF bounds each mailbox data path to 8 ns `DATAPATHONLY`. Exceptions apply
+only to request/acknowledge first-stage inputs and panel/indicator first-stage
+synchronizers; there is no blanket exception between CPU and PCIe clocks.
+Routing must confirm that these groups exist and every data bound passes.
+External panel/LED timing requirements and whole-CPU hardware validation remain
+unverified; a simulation pass alone does not establish board timing closure.
+
+`tools/test_pcie_cdc.vhd` exercises the production register and write controller
+with unrelated clocks, byte enables, sequence-counter ordering, a stopped CPU
+clock, and reset during a transfer. `tools/test_display_clock.vhd` checks scan
+timing, switch/lamp bit order, power control and reset. With ISE 14.7 loaded, run
+these commands from the repository root. ISim resolves source paths inside a
+`.prj` relative to that project file's directory, so `../src/...` entries in
+`tools/*.prj` refer to this repository's `src/`. Executable and Tcl batch paths
+in these commands are relative to the working directory. Compile
+each using `fuse -prj tools/test_pcie_cdc.prj -o test_pcie_cdc.exe test_pcie_cdc`
+and the corresponding `test_display_clock` project, then run its matching Tcl
+batch file. Require `PCIE_CDC_TEST_PASS` / `DISPLAY_CLOCK_TEST_PASS` and no failures.
+`tools/test_pcie_tlp_cdc.prj` additionally uses the generated PCIe RX/TX engines
+and the entire production PIO stack to check packet-level backpressure and
+ordered BAR writes; require `PCIE_TLP_CDC_TEST_PASS`. Generate the PCIe IP first
+if its example-design HDL is absent from `xise/ipcore_dir`.
+
+With the ISE environment loaded, run the timing/memory regression from the
+repository root with `fuse -prj tools/test_nohclk.prj -o test_nohclk.exe test_nohclk`,
+then `./test_nohclk.exe -tclbatch tools/test_nohclk.tcl`. Require
+`NOHCLK_TEST_PASS` and no assertion failures.
+
 The ALD compiler's C++ CPU is used for comparison with Hercules before running
 the generated VHDL on the FPGA. Hercules supplies memory and peripheral devices.
 
@@ -234,15 +395,71 @@ BAR0 keeps its existing CPU register layout and exposes read-only build metadata
 | `0x7EC` | Metadata signature `0x4D363542` (`M65B`) |
 | `0x7F0` | UTC build time, packed BCD `00HHMMSS` |
 | `0x7F4` | UTC build date, packed BCD `YYYYMMDD` |
-| `0x7F8` | FPGA revision, 16-bit major and minor (now 1.1, including the AR401 M17 correction) |
-| `0x7FC` | PCIe interface revision, 16-bit major and minor (now 1.2) |
+| `0x7F8` | FPGA revision, 16-bit major and minor (now 1.3, including the ISK storage-key return path, AR401 M17 correction and 100 MHz two-pass CPU scheduling) |
+| `0x7FC` | PCIe interface revision, 16-bit major and minor (now 1.4, with read-only panel diagnostics) |
+
+SE response bits 31..30 acknowledge the request sequence. An ISK response also
+sets bit 24 (key valid) and places the five storage-key bits in 29..25, in IBM
+bit order. WA accepts key advance only for a valid response matching its active
+ISK request. Other responses clear key valid. Register offsets are unchanged.
+
+Interface 1.4 adds a separate panel observation mailbox; CPU FPGA revision
+remains 1.3. The existing host compatibility policy accepts this additive
+interface revision. While Hercules has not set configuration bit 0, the two
+red Power Off outputs (LED bank 3, bits 38 and 39) blink at 1 Hz, 50% duty cycle.
+The panel CPU reset remains asserted during this wait. Configuration ends the
+blink and restores the existing power-button and lamp behavior.
+
+Read the panel on the Pi with `sudo python3 tools/m65_panel_dump.py --watch 0.25`.
+Use `--json` for one machine-readable snapshot per line, or `--resource PATH`
+to choose a particular BAR0. The tool opens BAR0 read-only and does not send CPU,
+reset, configuration or panel commands. Old interface 1.3 images are rejected
+with an explanatory message rather than interpreting their version aliases as
+panel data. These source changes require synthesis and a new bitstream; they
+do not update an already loaded image.
+
+| BAR0 byte offset | Read-only panel value |
+| --- | --- |
+| `0x400` | `0x504E4C31` (`PNL1`); reading captures the latest complete scan |
+| `0x404` | Captured scan generation, incremented every completed frame |
+| `0x408` | Status flags described below |
+| `0x40C` | Serial phase enable divider (512 core edges) |
+| `0x410` .. `0x42C` | Eight 24-bit switch banks, active-low values preserved |
+| `0x430` .. `0x45C` | Six 40-bit LED banks, two DWORDs each: low 32, then high 8 |
+
+Panel bit N maps to integer bit N, including the ascending-index VHDL vectors.
+LED values record the exact serial bits presented at the forty SCK rising
+edges, not electrical feedback from the LEDs. Switch values reflect the
+FPGA's sampled scan; they do not establish that external clock edges are clean.
+The normal 100 MHz scan has a 97.65625 kHz SCK and a 430.08 us frame period.
+The diagnostic mailbox can omit a frame if it is busy; it never stalls a scan
+or the independent CPU mailboxes.
+
+Status bits 0..7 are configured, power-on latch, panel CPU reset, complete-frame
+valid, Power On pressed, Power Off pressed, Load pressed, and waiting blink on.
+Bits 8..15 contain the synchronized serial input levels; bits 16..23 contain
+the preceding input sampling stage as sampled at the frame boundary. Bit 24 is
+SCK (low at this boundary), bit 25 is latch high, and the rest are reserved zero.
+Before the first complete frame, the snapshot is zero and valid is false.
+Reading `PNL1` captures a coherent bank held through subsequent reads; read
+generation before and after the data and retry if another diagnostic reader
+captured a different bank. Writes to the observation bank are ignored.
+
+`tools/test_panel_snapshot.vhd` checks actual serialized LED bit order, switch
+packing, waiting blink, configured power behavior, held snapshots, ignored
+writes and reset with independent PCIe/core clocks. Its blink half-period is
+shortened through a generic for simulation; production uses 50,000,000 core
+edges (0.5 seconds). `tools/test_panel_dump.py` checks decoding, old-image
+rejection and concurrent-reader retry. These tests do not establish routed
+timing or resolve the observed physical panel fault.
 
 Use the ISE 14.7 environment and run `xtclsh tools/build_fpga.tcl /path/to/ibm360m65`.
 This regenerates the PCIe core, adds its required HDL, fixes the UCF selection,
 and stamps `src/vhdl/pcie/fpga_build.vhd` immediately before synthesis. It also
-applies `MAX_FANOUT=64` to the existing RX ROS address registers after ALD
-generation, with placement-based register duplication enabled in MAP. This
-does not add a pipeline stage or relax the 5 ns clock constraint. For a GUI
+removes the previous blanket ROS synthesis fanout attribute after ALD generation.
+ROS fanout uses default synthesis and placement handling, with register
+duplication enabled in MAP. This
+does not add a pipeline stage or relax the 10 ns core clock constraint. For a GUI
 build, first run `xtclsh tools/stamp_fpga_build.tcl /path/to/fpga_build.vhd` and
 `xtclsh tools/distribute_ros_address.tcl /path/to/gen/ald/360_rx.vhd`, then enable
 register duplication in XST and MAP.
@@ -251,9 +468,15 @@ package has a zero date so an unstamped build is rejected.
 
 The hardware emulator reports the FPGA revision and timestamp before issuing
 CPU register commands. It requires interface major 1, interface minor at least
-2, FPGA revision exactly 1.1, the metadata signature and a valid timestamp.
+5, FPGA revision exactly 1.15, the metadata signature and a valid timestamp.
 Legacy bitstreams that returned 1.1 from unused addresses are rejected. The
 build date is diagnostic; matching dates alone never establish compatibility.
+FPGA 1.4 corrects measured active-high Power On/Off, LOAD, INTERRUPT and LOCAL
+selection inputs; other measured active-low controls retain their decoding.
+Power changes use complete latched scans, with Off priority, and LED words stay
+fixed throughout each serial frame. Interface 1.5 corrects the panel pressed
+flags. Raw input bank bits remain uninverted. TEST MODE and MARGIN RAISE remain
+unassigned pending wiring investigation.
 Increment the FPGA revision in both `fpga_build.vhd` and
 `hercules/m65_fpga_version.h` when changing CPU logic or behavior that must
 match the emulator. Bump the interface major for incompatible register or

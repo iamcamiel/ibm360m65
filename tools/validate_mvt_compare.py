@@ -68,6 +68,10 @@ class Validation:
                 self.waiting = False
             if 'Execution gone astray' in line:
                 raise RuntimeError(line.strip())
+            # A CE indicator alone does not establish a CPU failure. Microcode
+            # controls check sampling and recovery; comparison failures do stop.
+            if line.startswith('M65FAULT ') and 'reason=ce-check ' not in line:
+                raise RuntimeError('First fault requires investigation: ' + line.strip())
 
     def ready(self, model):
         return (self.waiting and self.generation > self.consumed
@@ -227,6 +231,12 @@ class Validation:
                 http(self.args.backend, '/control', {'command': 'stop'})
             except OSError:
                 pass
+            try:
+                model = http(self.args.backend)
+                self.result['failure_status_refreshed'] = True
+            except Exception as status_error:
+                self.result['failure_status_refreshed'] = False
+                self.result['failure_status_error'] = str(status_error)
             try:
                 self.save(model, 'Validation stopped: ' + str(error))
             except OSError as save_error:

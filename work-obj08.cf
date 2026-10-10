@@ -1,0 +1,229 @@
+v 4
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\ald.vhd" "14726509ddf8847e8a798ef3868baf2544c353aa" "20261010091523.736":
+  entity ald at 1( 0) + 0 on 161;
+  architecture behavioral of ald at 42( 1671) + 0 on 162;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_za.vhd" "cbf6c5700824e673ef1fb617eb06d60a8805b974" "20261010091523.724":
+  entity za at 1( 0) + 0 on 159;
+  architecture behavioral of za at 17( 334) + 0 on 160;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_wa.vhd" "4dbce2520349ae985929fd20f4db3a341e1d6af5" "20261010091523.724":
+  entity wa at 1( 0) + 0 on 157;
+  architecture behavioral of wa at 111( 5047) + 0 on 158;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_ry.vhd" "6a09528528c0c9b308736375551aab431a851cd6" "20261010091523.718":
+  entity ry at 1( 0) + 0 on 155;
+  architecture behavioral of ry at 64( 2890) + 0 on 156;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_rx.vhd" "140ea6662e57886cd7cca632939761dbd4775199" "20261010091523.715":
+  entity rx at 1( 0) + 0 on 153;
+  architecture behavioral of rx at 125( 5848) + 0 on 154;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_rw.vhd" "2fe9a392a3ba7250abe454aa88bdac6779e69d2b" "20261010091523.711":
+  entity rw at 1( 0) + 0 on 151;
+  architecture behavioral of rw at 164( 7589) + 0 on 152;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_rs.vhd" "2fb081840fe18892f85806ef295971b33fa9e46e" "20261010091523.707":
+  entity rs_rt at 1( 0) + 0 on 149;
+  architecture behavioral of rs_rt at 265( 13092) + 0 on 150;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_rr.vhd" "3baa2fc95264549ef043d1b43a631d6c340db89c" "20261010091523.696":
+  entity rr at 1( 0) + 0 on 147;
+  architecture behavioral of rr at 91( 3983) + 0 on 148;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_rq.vhd" "a901d94a95ea02e36d22a8a398176b792d21a1ba" "20261010091523.694":
+  entity rq at 1( 0) + 0 on 145;
+  architecture behavioral of rq at 131( 6038) + 0 on 146;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_rg.vhd" "1bb12d53cbb55813ac1ba19fae245fdd474e924c" "20261010091523.690":
+  entity rg at 1( 0) + 0 on 143;
+  architecture behavioral of rg at 25( 773) + 0 on 144;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_rf.vhd" "c966aab59382e4b039af5b7245926ff6c5a836c1" "20261010091523.689":
+  entity rf at 1( 0) + 0 on 141;
+  architecture behavioral of rf at 66( 2732) + 0 on 142;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_re.vhd" "e3c5766eef3f7216b7b08f1f2386e4b13ad40536" "20261010091523.688":
+  entity re at 1( 0) + 0 on 139;
+  architecture behavioral of re at 95( 4306) + 0 on 140;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_rd.vhd" "4cda04644bb70da25c47f88adbb72bd93fe4c1c3" "20261010091523.687":
+  entity rd at 1( 0) + 0 on 137;
+  architecture behavioral of rd at 67( 2786) + 0 on 138;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_ra.vhd" "ccbd98714b354d208274062ff75f30a191cf7892" "20261010091523.685":
+  entity ra_rb at 1( 0) + 0 on 135;
+  architecture behavioral of ra_rb at 184( 9096) + 0 on 136;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_px.vhd" "a7b2b50d642bdeefdc35fcef7cf4996a1b690425" "20261010091523.677":
+  entity px at 1( 0) + 0 on 133;
+  architecture behavioral of px at 79( 3616) + 0 on 134;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_pk.vhd" "2d2dc24b04355a7ed49571e8c9caec91c6662304" "20261010091523.675":
+  entity pk_pl at 1( 0) + 0 on 131;
+  architecture behavioral of pk_pl at 175( 8782) + 0 on 132;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_mc.vhd" "6d948f1225559bb2347051f66548b90e089006d5" "20261010091523.671":
+  entity mc at 1( 0) + 0 on 129;
+  architecture behavioral of mc at 231( 10533) + 0 on 130;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_mb.vhd" "a93840de5330af142279559c756be21cf90e912b" "20261010091523.665":
+  entity mb at 1( 0) + 0 on 127;
+  architecture behavioral of mb at 75( 3254) + 0 on 128;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_ma.vhd" "23d4a4ed5b097693bc6cefe7d0ebb402fe972b78" "20261010091523.661":
+  entity ma at 1( 0) + 0 on 125;
+  architecture behavioral of ma at 93( 4168) + 0 on 126;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_ls.vhd" "a3d99e9a4e67bb97ef7f083926ba589d57e80082" "20261010091523.659":
+  entity ls at 1( 0) + 0 on 123;
+  architecture behavioral of ls at 72( 3257) + 0 on 124;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_kz.vhd" "bb9d8ebf62adf7ebe70f36f9a2eba2041825324a" "20261010091523.658":
+  entity kz at 1( 0) + 0 on 121;
+  architecture behavioral of kz at 68( 2806) + 0 on 122;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_kx.vhd" "9911ee9e7f09ad24c513086d08c10acd7002d434" "20261010091523.657":
+  entity kx at 1( 0) + 0 on 119;
+  architecture behavioral of kx at 137( 6207) + 0 on 120;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_kw.vhd" "17972739be6c6a51c50689e41e163dd4feba5a04" "20261010091523.655":
+  entity kw at 1( 0) + 0 on 117;
+  architecture behavioral of kw at 345( 16623) + 0 on 118;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_ku.vhd" "769d24fac21bf584e5187dd4f236990e0052d7e8" "20261010091523.651":
+  entity ku at 1( 0) + 0 on 115;
+  architecture behavioral of ku at 329( 15827) + 0 on 116;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_kt.vhd" "96912db05834e77bff8827537359ed1db3f402c5" "20261010091523.640":
+  entity kt at 1( 0) + 0 on 113;
+  architecture behavioral of kt at 527( 26822) + 0 on 114;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_ks.vhd" "5e996d41a6b007639c27752ea5c1c3f24f14a923" "20261010091523.624":
+  entity ks at 1( 0) + 0 on 111;
+  architecture behavioral of ks at 150( 6502) + 0 on 112;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_kn.vhd" "72e4cf8696369337739f9a7ea3ad5031fab45db7" "20261010091523.623":
+  entity kn at 1( 0) + 0 on 109;
+  architecture behavioral of kn at 88( 3998) + 0 on 110;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_km.vhd" "8ab3dba054207936678a5ced511fb1c3faa1b14a" "20261010091523.622":
+  entity km at 1( 0) + 0 on 107;
+  architecture behavioral of km at 300( 14618) + 0 on 108;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_kk.vhd" "b6f66001078e0020b460bcebb99a7b71d22b890c" "20261010091523.619":
+  entity kk at 1( 0) + 0 on 105;
+  architecture behavioral of kk at 18( 416) + 0 on 106;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_kd.vhd" "6a85d9dac663d44c1399f69ea5035ddeb5bf4b7d" "20261010091523.618":
+  entity kd at 1( 0) + 0 on 103;
+  architecture behavioral of kd at 188( 8991) + 0 on 104;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_kc.vhd" "27ff3ff78e043f6ae7351369d40599b4e6a59ed5" "20261010091523.615":
+  entity kc at 1( 0) + 0 on 101;
+  architecture behavioral of kc at 109( 4717) + 0 on 102;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_ja.vhd" "37750aa3dffa925f30b7d123147da269c399a329" "20261010091523.613":
+  entity ja at 1( 0) + 0 on 99;
+  architecture behavioral of ja at 58( 2261) + 0 on 100;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_fx.vhd" "eb07e9618b92e42e134734439a6def1ff6ba30ce" "20261010091523.612":
+  entity fx at 1( 0) + 0 on 97;
+  architecture behavioral of fx at 66( 2698) + 0 on 98;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_fe.vhd" "09a07e46d1770312b64cbff97e76c8c81e76e43e" "20261010091523.612":
+  entity fe at 1( 0) + 0 on 95;
+  architecture behavioral of fe at 55( 2325) + 0 on 96;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_ef.vhd" "b8e409a99663f180b7142721a4e725ae64261cae" "20261010091523.610":
+  entity ef at 1( 0) + 0 on 93;
+  architecture behavioral of ef at 19( 495) + 0 on 94;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_ee.vhd" "af65eaafc216f7a495285c512594147496450e68" "20261010091523.607":
+  entity ee at 1( 0) + 0 on 91;
+  architecture behavioral of ee at 13( 188) + 0 on 92;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_ds.vhd" "e9b662a8320b141ed8f5e877c1a90a3560b5151c" "20261010091523.607":
+  entity ds at 1( 0) + 0 on 89;
+  architecture behavioral of ds at 297( 14246) + 0 on 90;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_dr.vhd" "77e98342ac668d97eb3e5baa0288d4650216d0fa" "20261010091523.602":
+  entity dr at 1( 0) + 0 on 87;
+  architecture behavioral of dr at 268( 12705) + 0 on 88;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_dp.vhd" "d42b88ab3db7269a819d4592679f4f10ab2bf65c" "20261010091523.593":
+  entity dp at 1( 0) + 0 on 85;
+  architecture behavioral of dp at 51( 2058) + 0 on 86;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_dn.vhd" "4216fbd7b27ffb70728ca252fb5127ce27d42f47" "20261010091523.591":
+  entity dn at 1( 0) + 0 on 83;
+  architecture behavioral of dn at 153( 6958) + 0 on 84;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_cw.vhd" "361d2c9b86d84d73cf1c90539744c2a52642066f" "20261010091523.588":
+  entity cw at 1( 0) + 0 on 81;
+  architecture behavioral of cw at 43( 1627) + 0 on 82;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_ct.vhd" "4401f90b6f8f5c4a65e68faa8ccacb7a153e8168" "20261010091523.587":
+  entity ct at 1( 0) + 0 on 79;
+  architecture behavioral of ct at 48( 1845) + 0 on 80;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_cs.vhd" "4e3b833d7ddf733907e4477ae12806bab01cacef" "20261010091523.586":
+  entity cs at 1( 0) + 0 on 77;
+  architecture behavioral of cs at 51( 2030) + 0 on 78;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_ce.vhd" "85551cf937630e603dfa621839108bfecd77ff34" "20261010091523.585":
+  entity ce at 1( 0) + 0 on 75;
+  architecture behavioral of ce at 68( 3008) + 0 on 76;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_ca.vhd" "de0d733eeda66e95ae0381d9df73debd510ee730" "20261010091523.583":
+  entity ca at 1( 0) + 0 on 73;
+  architecture behavioral of ca at 58( 2435) + 0 on 74;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_bf.vhd" "6bfbdee5c12c2cc0b416688954e7b895e54c79ce" "20261010091523.581":
+  entity bf at 1( 0) + 0 on 71;
+  architecture behavioral of bf at 72( 3187) + 0 on 72;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_as.vhd" "af79067a2471bba445aefcc4ada0722a7db76081" "20261010091523.578":
+  entity as at 1( 0) + 0 on 69;
+  architecture behavioral of as at 121( 5527) + 0 on 70;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_ar.vhd" "497ce5571cf42d46f9d42b864244dd771a0d56fe" "20261010091523.574":
+  entity ar at 1( 0) + 0 on 67;
+  architecture behavioral of ar at 128( 6034) + 0 on 68;
+file / "D:\Github\IBM360\ibm360m65\gen\reset-load-repair-20261010\generated\360_ap.vhd" "a9ba6c4516646d5ba15b7659957b3472313eb035" "20261010091523.570":
+  entity ap at 1( 0) + 0 on 65;
+  architecture behavioral of ap at 288( 14900) + 0 on 66;
+file / "D:\Github\IBM360\ibm360m65\src\vhdl\rosmem.vhd" "a8cf2b078df4528e743d00298b05ad323c2e85e1" "20261010091523.548":
+  entity rosmem at 17( 767) + 0 on 63;
+  architecture behavioral of rosmem at 31( 1082) + 0 on 64;
+file / "D:\Github\IBM360\ibm360m65\src\vhdl\ls_memory.vhd" "c582fdb9eb1af7b50b848f816892561faff7877b" "20261010091523.544":
+  entity ls_memory at 17( 767) + 0 on 61;
+  architecture behavioral of ls_memory at 36( 1268) + 0 on 62;
+file / "D:\Github\IBM360\ibm360m65\src\vhdl\cpu_primitives\td70ns.vhd" "7a077847f6203779333bf14513a62608a06f71c9" "20261010091523.543":
+  entity td70ns at 17( 767) + 0 on 59;
+  architecture behavioral of td70ns at 32( 1058) + 0 on 60;
+file / "D:\Github\IBM360\ibm360m65\src\vhdl\cpu_primitives\td60ns.vhd" "f6abc80db5c8d88926b645831c202e77ec014a64" "20261010091523.543":
+  entity td60ns at 17( 767) + 0 on 57;
+  architecture behavioral of td60ns at 32( 1058) + 0 on 58;
+file / "D:\Github\IBM360\ibm360m65\src\vhdl\cpu_primitives\td50ns.vhd" "f2b6605fbaff042e77d6f428e355447d619fdd82" "20261010091523.543":
+  entity td50ns at 17( 767) + 0 on 55;
+  architecture behavioral of td50ns at 32( 1058) + 0 on 56;
+file / "D:\Github\IBM360\ibm360m65\src\vhdl\cpu_primitives\td50_70ns.vhd" "2472489f4d4bd967db694d345ec4dff2f2a0bb3f" "20261010091523.542":
+  entity td50_70ns at 17( 767) + 0 on 53;
+  architecture behavioral of td50_70ns at 32( 1064) + 0 on 54;
+file / "D:\Github\IBM360\ibm360m65\src\vhdl\cpu_primitives\td40ns.vhd" "61cb02c906da6f7e58dae7054db8c5d85eb91ca7" "20261010091523.542":
+  entity td40ns at 17( 767) + 0 on 51;
+  architecture behavioral of td40ns at 32( 1058) + 0 on 52;
+file / "D:\Github\IBM360\ibm360m65\src\vhdl\cpu_primitives\td30ns.vhd" "59dc53bc7786744a9a7843f9325152af3837af9a" "20261010091523.542":
+  entity td30ns at 17( 767) + 0 on 49;
+  architecture behavioral of td30ns at 32( 1058) + 0 on 50;
+file / "D:\Github\IBM360\ibm360m65\src\vhdl\cpu_primitives\td20ns.vhd" "ee27cc09b29585d7de20d6ca87b57723318d060b" "20261010091523.541":
+  entity td20ns at 17( 767) + 0 on 47;
+  architecture behavioral of td20ns at 32( 1058) + 0 on 48;
+file / "D:\Github\IBM360\ibm360m65\src\vhdl\cpu_primitives\td125ns.vhd" "1e938c1a05edf6f81e91e45f952a7e3a51982262" "20261010091523.541":
+  entity td125ns at 17( 767) + 0 on 45;
+  architecture behavioral of td125ns at 32( 1060) + 0 on 46;
+file / "D:\Github\IBM360\ibm360m65\src\vhdl\cpu_primitives\td110ns.vhd" "13da8f3b9d5fba594ee8b1620f87529eb632edc6" "20261010091523.541":
+  entity td110ns at 17( 767) + 0 on 43;
+  architecture behavioral of td110ns at 32( 1060) + 0 on 44;
+file / "D:\Github\IBM360\ibm360m65\src\vhdl\cpu_primitives\ssn5500us.vhd" "e100382c802aef0454840d1a61bd9f7f119c7156" "20261010091523.540":
+  entity ssn5500us at 17( 767) + 0 on 41;
+  architecture behavioral of ssn5500us at 32( 1066) + 0 on 42;
+file / "D:\Github\IBM360\ibm360m65\src\vhdl\cpu_primitives\ss300ns.vhd" "e8818e229ea93fe626e21f4fecda83be377c86b0" "20261010091523.540":
+  entity ss300ns at 17( 767) + 0 on 39;
+  architecture behavioral of ss300ns at 32( 1062) + 0 on 40;
+file / "D:\Github\IBM360\ibm360m65\src\vhdl\cpu_primitives\ph.vhd" "6393563a8452905b7ffba7dc6b57778b4ace818f" "20261010091523.540":
+  entity ph at 17( 767) + 0 on 37;
+  architecture behavioral of ph at 33( 1081) + 0 on 38;
+file / "D:\Github\IBM360\ibm360m65\src\vhdl\cpu_primitives\osc5mc.vhd" "e31690b8ec8f370484e3ba30a5af1197bc59702e" "20261010091523.540":
+  entity osc5mc at 17( 767) + 0 on 35;
+  architecture behavioral of osc5mc at 32( 1060) + 0 on 36;
+file / "D:\Github\IBM360\ibm360m65\src\vhdl\cpu_primitives\nssn525ns.vhd" "1cdb927bb80907ea813406b582e56d339762c5be" "20261010091523.539":
+  entity nssn525ns at 17( 767) + 0 on 33;
+  architecture behavioral of nssn525ns at 32( 1066) + 0 on 34;
+file / "D:\Github\IBM360\ibm360m65\src\vhdl\cpu_primitives\nssn3us.vhd" "5ac2d6af021d56c1214e61674e910f567e96b59d" "20261010091523.539":
+  entity nssn3us at 17( 767) + 0 on 31;
+  architecture behavioral of nssn3us at 32( 1062) + 0 on 32;
+file / "D:\Github\IBM360\ibm360m65\src\vhdl\cpu_primitives\nssn30ms.vhd" "8e6d320f13a97b239d912686eb68a4e0f09a2707" "20261010091523.539":
+  entity nssn30ms at 17( 767) + 0 on 29;
+  architecture behavioral of nssn30ms at 32( 1064) + 0 on 30;
+file / "D:\Github\IBM360\ibm360m65\src\vhdl\cpu_primitives\nssn2800ns.vhd" "b970b7369dd163abb0d3ac678e74e74c76d1f203" "20261010091523.538":
+  entity nssn2800ns at 17( 767) + 0 on 27;
+  architecture behavioral of nssn2800ns at 32( 1068) + 0 on 28;
+file / "D:\Github\IBM360\ibm360m65\src\vhdl\cpu_primitives\nssn2500ms.vhd" "85ad5b5b60849a1fd8fc637723ed13a0414d6769" "20261010091523.538":
+  entity nssn2500ms at 17( 767) + 0 on 25;
+  architecture behavioral of nssn2500ms at 32( 1068) + 0 on 26;
+file / "D:\Github\IBM360\ibm360m65\src\vhdl\cpu_primitives\nssn1200ns.vhd" "f5ba1aabc2074119dd138de34358147e67dc1193" "20261010091523.537":
+  entity nssn1200ns at 17( 767) + 0 on 23;
+  architecture behavioral of nssn1200ns at 32( 1068) + 0 on 24;
+file / "D:\Github\IBM360\ibm360m65\src\vhdl\cpu_primitives\nssn1000ms.vhd" "82cf60fb69793ecc1dc7270e1503b30eada2e658" "20261010091523.537":
+  entity nssn1000ms at 17( 767) + 0 on 21;
+  architecture behavioral of nssn1000ms at 32( 1068) + 0 on 22;
+file / "D:\Github\IBM360\ibm360m65\src\vhdl\cpu_primitives\doubletd40ns.vhd" "78c46e3883d6f378eb745be931b76dce2697b7cc" "20261010091523.537":
+  entity doubletd40ns at 17( 767) + 0 on 19;
+  architecture behavioral of doubletd40ns at 32( 1070) + 0 on 20;
+file / "D:\Github\IBM360\ibm360m65\src\vhdl\cpu_primitives\doubletd340ns.vhd" "0a7d4eb561f4ca72634b8528dfd024150704142b" "20261010091523.537":
+  entity doubletd340ns at 17( 767) + 0 on 17;
+  architecture behavioral of doubletd340ns at 32( 1072) + 0 on 18;
+file / "D:\Github\IBM360\ibm360m65\src\vhdl\cpu_primitives\doubletd210ns.vhd" "f3e68ed6ca3f1febabb0c7db9f688c8aece11750" "20261010091523.536":
+  entity doubletd210ns at 17( 767) + 0 on 15;
+  architecture behavioral of doubletd210ns at 32( 1072) + 0 on 16;
+file / "D:\Github\IBM360\ibm360m65\src\vhdl\cpu_primitives\doubletd200ns.vhd" "bdd4bc4378f00bc398de2781581d2af074fabb42" "20261010091523.536":
+  entity doubletd200ns at 17( 767) + 0 on 13;
+  architecture behavioral of doubletd200ns at 32( 1072) + 0 on 14;
+file / "D:\Github\IBM360\ibm360m65\src\vhdl\cpu_primitives\doubless200ns.vhd" "51c97748d6061e0617eb67462b90f442e496201d" "20261010091523.535":
+  entity doubless200ns at 17( 767) + 0 on 11;
+  architecture behavioral of doubless200ns at 32( 1074) + 0 on 12;

@@ -1169,6 +1169,7 @@ void process_memory(REGS* regs) {
     unsigned int sec = read_m65_reg(M65_REG_SE_CMD);
     if ((current_se_num ^ sec) & 0xc0000000) {
         current_se_num = sec & 0xc0000000;
+        unsigned int response = current_se_num;
         unsigned int sea = read_m65_reg(M65_REG_SE_ADDR);
 
         if (mon_stor)
@@ -1226,9 +1227,16 @@ void process_memory(REGS* regs) {
 #else
                 /* Update the storage key from R1 register bits 24-30 */
                 STORAGE_KEY(sea & 0x7ffff0, regs) &= STORKEY_BADFRM;
-                STORAGE_KEY(sea & 0x7ffff0, regs) |= (sec>>24) & 0x3e & ~(STORKEY_BADFRM);  // CAVA SHIFT and AND correct???
+                STORAGE_KEY(sea & 0x7ffff0, regs) |= ((sec >> 22) & 0xf8) & ~(STORKEY_BADFRM);
                 STORKEY_INVALIDATE(regs, sea & 0x7ffff0);
 #endif
+            }
+            else if (sec & 4) {
+                /* ISK returns the five Model-65 key bits, not a data word.
+                   Keep key and valid together with the completed sequence.
+                   WA gates key advance only for that matching live request. */
+                unsigned int key = STORAGE_KEY(sea & 0x007ff800, regs) & 0xf8;
+                response |= (key << 22) | 0x01000000;
             }
             else {
                 // read
@@ -1237,13 +1245,14 @@ void process_memory(REGS* regs) {
                 write_m65_reg(M65_REG_SE_RDATA_LO, htonl(data >> 32));
             }
         }
-        write_m65_reg(M65_REG_SE_RESP, current_se_num);
+        write_m65_reg(M65_REG_SE_RESP, response);
     }
 }
 
 void twenty_cycle(REGS * regs) {
     for (int i = 0; i < 20; i++) {
         single_cycle();
+        if (m65_fault_pending()) return;
         if (i >= 17)
             process_memory(regs);
     }
@@ -1308,6 +1317,19 @@ int run_single_instruction(REGS * regs) {
         }
 #endif        //        if (z == 10000) exit(1);
         twenty_cycle(regs);
+#if defined(COMPARE_M65)
+        if (m65_fault_pending()) {
+            // Keep the fetched reference instruction and faulting ALD state.
+            // A manual Resume cannot advance beyond the sticky first fault.
+            BYTE *saved_aie = regs->aie;
+            OBTAIN_INTLOCK(regs);
+            regs->cpustate = regs->configured ? CPUSTATE_STOPPED : CPUSTATE_STOPPING;
+            RELEASE_INTLOCK(regs);
+            ARCH_DEP(process_interrupt)(regs);
+            regs->aie = saved_aie;
+            continue;
+        }
+#endif
         /* Console output can precede WTOR setup on this slow model. Expose
            a settled architectural wait so the operator helper can defer
            automatic replies until all runnable OS work has completed. */
@@ -1486,12 +1508,13 @@ lf = fopen("m65.log", "w");
 
     full_init();
     write_m65_reg(M65_REG_CFG, sysblk.mainsize - 1);
-    for (int i = 0; i < 50; i++) {
+    for (int i = 0; i < M65_NATIVE_STARTUP_CYCLES / 20; i++) {
         twenty_cycle(&regs);
     }
     D_fprintf(lf, "M65TIMER disable_key=%d clock_enable=%d\n",
         newstate.PK_PL.disable_timer_key, newstate.KW._disable_time_clock);
     D_fprintf(lf, "\n\nINIT COMPLETE\n\n\n");
+    fflush(lf);
 #endif
     if (oldregs)
     {
@@ -1536,6 +1559,15 @@ lf = fopen("m65.log", "w");
     regs.execflag = 0;
 
     do {
+#if defined(COMPARE_M65)
+        if (m65_fault_pending()) {
+            OBTAIN_INTLOCK(&regs);
+            regs.cpustate = regs.configured ? CPUSTATE_STOPPED : CPUSTATE_STOPPING;
+            RELEASE_INTLOCK(&regs);
+            ARCH_DEP(process_interrupt)(&regs);
+            continue;
+        }
+#endif
 #if !defined(SOFTWARE_M65) && !defined(HARDWARE_M65)
         if (INTERRUPT_PENDING(&regs))
             ARCH_DEP(process_interrupt)(&regs);
@@ -1596,22 +1628,26 @@ retry:
 
         if ((ic != ia + 8) && (ic != ia + 16)) {
             D_fprintf(lf, "Execution gone astray! IC does not match: HERC=%x, M65=%x\n", ia, ic);
+            m65_latch_fault("comparison-ic");
             max_retries = 0;
         }
         int sysm = newstate.RW.psw_bit.F >> 32;
         if (sysm != regs.psw.sysmask) {
             D_fprintf(lf, "Execution gone astray! SYSMASK does not match: HERC=%x, M65=%x\n", regs.psw.sysmask, sysm);
+            m65_latch_fault("comparison-sysmask");
             max_retries = 0;
         }
         int cond = newstate.RW.psw_bit.B34 * 2 + newstate.RW.psw_bit.B35;
         if (cond != regs.psw.cc) {
             RETRY;
             D_fprintf(lf, "Execution gone astray! CC does not match: HERC=%x, M65=%x\n", regs.psw.cc, cond);
+            m65_latch_fault("comparison-cc");
         }
         for (int i = 0; i < 16; i++) {
             if (newstate.ls_mem[i].F != regs.gr[i].F.L.F) {
                 RETRY;
                 D_fprintf(lf, "Execution gone astray! GR%d does not match: HERC=%x, M65=%x\n", i, regs.gr[i].F.L.F, newstate.ls_mem[i].F);
+                m65_latch_fault("comparison-register");
             }
         }
         write_compare();

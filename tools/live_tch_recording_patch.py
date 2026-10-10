@@ -24,23 +24,24 @@ def replacement_code(record_address):
             + struct.pack('<I', record_address) + bytes.fromhex('c3'))
 
 
-def install(pid, executable, report_path):
+def install(pid, executable, report_path, original_factory=None, replacement_factory=None):
     report_path = Path(report_path)
     if report_path.exists():
         raise RuntimeError('A patch record already exists; do not apply twice')
-    debug = subprocess.run([str(CDB), '-pv', '-p', str(pid), '-c',
+    debug = subprocess.run([str(CDB), '-y', str(Path(executable).resolve().parent), '-pv', '-p', str(pid), '-c',
         '.reload /f Hercules.exe; x Hercules!*record_herc_io*; '
         'x Hercules!io_herc; qd'], capture_output=True, text=True, timeout=20)
     report_path.with_suffix('.symbols.log').write_text(debug.stdout + debug.stderr)
     if debug.returncode:
         raise RuntimeError('Cannot resolve original process symbols')
-    entry_match = re.search(r'^([0-9a-fA-F]{8})\s+hercules!record_herc_io\s', debug.stdout, re.M)
-    data_match = re.search(r'^([0-9a-fA-F]{8})\s+hercules!io_herc\s', debug.stdout, re.M)
+    entry_match = re.search(r'^([0-9a-fA-F]{8})\s+hercules!record_herc_io\s', debug.stdout, re.M | re.I)
+    data_match = re.search(r'^([0-9a-fA-F]{8})\s+hercules!io_herc\s', debug.stdout, re.M | re.I)
     if not entry_match or not data_match:
         raise RuntimeError('Missing recorder symbols')
     entry, data = (int(m[1], 16) for m in (entry_match, data_match))
-    original = bytes.fromhex('558bec8b4508a3') + struct.pack('<I', data) + bytes.fromhex('5dc3')
-    code = replacement_code(data)
+    original = (original_factory(data) if original_factory else
+                bytes.fromhex('558bec8b4508a3') + struct.pack('<I', data) + bytes.fromhex('5dc3'))
+    code = (replacement_factory or replacement_code)(data)
     kernel = C.WinDLL('kernel32', use_last_error=True)
     nt = C.WinDLL('ntdll')
     kernel.OpenProcess.argtypes = [W.DWORD, W.BOOL, W.DWORD]

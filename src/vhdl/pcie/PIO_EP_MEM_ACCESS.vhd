@@ -36,6 +36,9 @@ entity PIO_EP_MEM_ACCESS is port (
   wr_en_i      : in std_logic;
   wr_busy_o    : out std_logic;
   
+    core_clk_i, cdc_reset_i : in std_logic;
+    panel_snapshot_i : in std_logic_vector(735 downto 0) := (others => '0');
+    panel_valid_i : in std_logic := '0';
     P_reg_io_int : buffer STD_LOGIC_VECTOR (31 downto 0);
     P_reg_io_resp : buffer STD_LOGIC_VECTOR (31 downto 0);
     P_reg_se_rdata_hi : buffer STD_LOGIC_VECTOR (31 downto 0);
@@ -60,34 +63,7 @@ type state_type is (PIO_MEM_ACCESS_WR_RST,
                     PIO_MEM_ACCESS_WR_WRITE
                     );
 
-component EP_MEM port (
 
-  clk_i : in std_logic ;
-		 
-  a_rd_a_i_0 : in std_logic_vector(8 downto 0);
-  a_rd_d_o_0 : out std_logic_vector(31 downto 0);
-		 
-  b_wr_a_i_0 : in std_logic_vector(8 downto 0);
-  b_wr_d_i_0 : in std_logic_vector(31 downto 0);
-  b_wr_en_i_0 : in std_logic ;
-  b_rd_d_o_0 : out std_logic_vector(31 downto 0);
-	
-    P_reg_io_int : buffer STD_LOGIC_VECTOR (31 downto 0);
-    P_reg_io_resp : buffer STD_LOGIC_VECTOR (31 downto 0);
-    P_reg_se_rdata_hi : buffer STD_LOGIC_VECTOR (31 downto 0);
-    P_reg_se_rdata_lo : buffer STD_LOGIC_VECTOR (31 downto 0);
-    P_reg_se_resp : buffer STD_LOGIC_VECTOR (31 downto 0);
-    P_reg_se_size : buffer STD_LOGIC_VECTOR (31 downto 0);
-    P_reg_ext : in STD_LOGIC_VECTOR (31 downto 0);
-    P_reg_io_cmd : in STD_LOGIC_VECTOR (31 downto 0);
-    P_reg_se_addr : in STD_LOGIC_VECTOR (31 downto 0);
-    P_reg_se_cmd : in STD_LOGIC_VECTOR (31 downto 0);
-    P_reg_se_wdata_hi : in STD_LOGIC_VECTOR (31 downto 0);
-    P_reg_se_wdata_lo : in STD_LOGIC_VECTOR (31 downto 0)
-
-);
-
-end component;
 
 signal  rd_data0_q        : std_logic_vector(31 downto 0);
 signal  rd_data0_o        : std_logic_vector(31 downto 0);
@@ -122,7 +98,7 @@ signal w_wr_data1_int : std_logic_vector(7 downto 0);
 signal w_wr_data2_int : std_logic_vector(7 downto 0);
 signal w_wr_data3_int : std_logic_vector(7 downto 0);
 
-signal interim : std_logic;
+signal interim, cdc_busy : std_logic;
 
 signal rd_data_raw_int0 : std_logic_vector(7 downto 0);
 signal rd_data_raw_int1 : std_logic_vector(7 downto 0);
@@ -213,7 +189,7 @@ end process;
 
 -- Write controller busy
 
-wr_busy_o <= wr_en_i or interim;
+wr_busy_o <= wr_en_i or interim or write_en or cdc_busy;
 
 interim <= '1' when (wr_mem_state /= PIO_MEM_ACCESS_WR_RST) else '0';
 
@@ -269,9 +245,10 @@ rd_data_raw_int2 <= rd_data_raw_o(23 downto 16) when (rd_be_i(2) = '1') else (ot
 rd_data_raw_int3 <= rd_data_raw_o (31 downto 24) when (rd_be_i(3) = '1') else (others => '0');
 
 
-EP_MEM_inst : EP_MEM  port map (
+EP_MEM_inst : entity work.EP_MEM port map (
 
   clk_i => clk,
+  cdc_busy_o => cdc_busy,
 
   a_rd_a_i_0 => rd_addr_i(8 downto 0),       -- I [8:0]
   a_rd_d_o_0 => rd_data0_o,                  -- O [31:0]
@@ -281,6 +258,8 @@ EP_MEM_inst : EP_MEM  port map (
   b_wr_en_i_0 => write_en, --{write_en & (wr_addr_i[10:9] == 2'b00)}), -- I
   b_rd_d_o_0 => w_pre_wr_data0(31 downto 0),        -- O [31:0]
                   
+    core_clk_i => core_clk_i, cdc_reset_i => cdc_reset_i,
+    panel_snapshot_i => panel_snapshot_i, panel_valid_i => panel_valid_i,
     P_reg_io_int => P_reg_io_int,
 	 P_reg_io_resp => P_reg_io_resp,
     P_reg_se_rdata_hi => P_reg_se_rdata_hi,

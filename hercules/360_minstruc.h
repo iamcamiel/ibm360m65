@@ -16,6 +16,11 @@
 
 #pragma warning (disable : 4807)
 
+// Native-model startup at 100 MHz. Keep POR beyond the 3.2 us console
+// single-shot, then let the 256-word local-store reset loop finish before IPL.
+#define M65_NATIVE_POWER_RESET_CYCLES 500
+#define M65_NATIVE_STARTUP_CYCLES 10000
+
 #include "ald.h"
 #include <stdio.h>
 
@@ -46,6 +51,8 @@ extern void logmsg(char* a, ...);
 
 void full_init();
 void single_cycle();
+bool m65_fault_pending();
+void m65_latch_fault(const char* reason);
 
 #if defined(COMPARE_M65)
 void record_65_write(int sea, int wh, int wl);

@@ -890,7 +890,7 @@ SECTION RS_RT
       +st parity 00-07
       +gt s 00-31 padda 32-63
     AND
-      +st bit[32..39]
+      +st parity 32-39
       OR
         +gt t padda 32-63 t-l0
         +gt t padda 32-63 c-l0
