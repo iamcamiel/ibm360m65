@@ -127,9 +127,10 @@ int main() {
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--generated',type=Path,required=True)
+    parser.add_argument('--output',type=Path,default=ROOT/'gen/isk-fix/storage-tests')
     args=parser.parse_args()
     generated=args.generated.resolve()
-    build=ROOT/'gen/isk-fix/storage-tests'; build.mkdir(parents=True,exist_ok=True)
+    build=args.output.resolve(); build.mkdir(parents=True,exist_ok=True)
     (build/'fixture.cpp').write_text(FIXTURE.replace('ACTUAL_FUNCTION',function_source('cpu.c','void process_memory(REGS* regs)')))
     results={}
     for mode in ('COMPARE_M65','SOFTWARE_M65'):

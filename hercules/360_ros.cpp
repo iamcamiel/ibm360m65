@@ -474,8 +474,8 @@ extern "C" {
         newstate.EXTERNAL_.power_on_reset = true;
 
 
-        // DISABLE CE CHECKS
-        newstate.EXTERNAL_.switches_7.B11 = false;
+        // Active-low DISABLE CHECK contact: keep CE checks enabled.
+        newstate.EXTERNAL_.switches_7.B11 = true;
 
     }
 
@@ -1432,7 +1432,8 @@ extern "C" {
     void record_65_set_key(int sec, int sea) {
         // WA command bits 29..25 carry the five Model-65 key bits.
         // Compare them in Hercules's key-byte positions 7..3.
-        sk65[sea & 0x7ffff0] = ((unsigned int)sec >> 22) & 0xf8;
+        // SEADDR is a byte address with mark bits; keys belong to 2 KiB blocks.
+        sk65[sea & 0x007ff800] = ((unsigned int)sec >> 22) & 0xf8;
     }
 
     void record_65_write(int sea, int wh, int wl) {
