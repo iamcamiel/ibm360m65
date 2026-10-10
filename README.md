@@ -1,6 +1,15 @@
 # ibm360m65
 IBM360 Model 65 CPU Emulation
 
+FPGA revision 1.11 reconciles the emulator and VHDL ROS images with the verified
+QZ listings. It repairs 14 differing addresses and the unused-word formatting
+at `528`, including the `31C` next-address base, `89A` C-field boundary, `D97`
+missing cell/group boundaries and `E3F` valid flag. Both images now contain the
+same 2,816 words and decode the same controls. Word `F21` uses E0 from the May
+1970 QZ listing; the later March 1972 QQ441 CAS revision prints an E operation.
+The scan/CAS comparison notes retain that revision distinction. A matching
+revision 1.11 bitstream is required for hardware use.
+
 FPGA revision 1.10 corrects the KW093 logout-delay single shots: the falling
 input after an error stop triggers each negative pulse, and the timers advance
 once per 10 ns core edge rather than in both Boolean passes. The new 5.5 ms
@@ -420,7 +429,7 @@ package has a zero date so an unstamped build is rejected.
 
 The hardware emulator reports the FPGA revision and timestamp before issuing
 CPU register commands. It requires interface major 1, interface minor at least
-5, FPGA revision exactly 1.4, the metadata signature and a valid timestamp.
+5, FPGA revision exactly 1.11, the metadata signature and a valid timestamp.
 Legacy bitstreams that returned 1.1 from unused addresses are rejected. The
 build date is diagnostic; matching dates alone never establish compatibility.
 FPGA 1.4 corrects measured active-high Power On/Off, LOAD, INTERRUPT and LOCAL

@@ -19,7 +19,8 @@ int main(void)
         {0x10005, magic, 0x10000, 0x20261007, 0x00174503, 0}, /* predates M17 ALD correction */
         {0x10005, magic, 0x10001, 0x20261007, 0x00174503, 0}, /* predates two-pass scheduling */
         {0x10005, magic, 0x10002, 0x20261007, 0x00174503, 0}, /* missing ISK return path */
-        {0x10005, magic, 0x1000b, 0x20261007, 0x00174503, 0}, /* unknown later revision */
+        {0x10005, magic, 0x1000c, 0x20261007, 0x00174503, 0}, /* unknown later revision */
+        {0x10005, magic, 0x1000a, 0x20261007, 0x00174503, 0}, /* old ROS transcription and field grouping */
         {0x10005, magic, 0x10009, 0x20261007, 0x00174503, 0}, /* old logout delay polarity/timing */
         {0x10005, magic, 0x10008, 0x20261007, 0x00174503, 0}, /* old ROS backup and RT771 parity */
         {0x10005, magic, 0x10007, 0x20261007, 0x00174503, 0}, /* old RX081 reset/scan selection */
