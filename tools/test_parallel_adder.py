@@ -37,6 +37,23 @@ def main():
  if(got!=want && checker_fail<3) std::printf("CHECK_FAIL {group} data=%x parity=%u want=%u got=%u\\n",data,p,want,got);
 }}''')
     predictors=[]
+    aggregate_groups=['04M07','08M15','16M23','24M31','32M39','40M47','48M55','56M67']
+    aggregate_inputs='\n'.join(f'oldstate.AP_INT._half_sum_error_{group}=(mask>>{i})&1;' for i,group in enumerate(aggregate_groups))
+    aggregate=r'''for(unsigned mask=0;mask<256;++mask){
+ reset();
+ for(int cycle=0;cycle<16;++cycle){
+  AGGREGATE_INPUTS
+  oldstate.AP_INT.clock_p2=1;
+  oldstate.AP_INT._temp_ap801_2m_bx_not=1;
+  oldstate.AP_INT._left_shift=0;
+  oldstate.AP_INT._clock_p1_and_no_error=0;
+  newstate=oldstate;process_AP();oldstate=newstate;
+ }
+ unsigned want=parity(mask),got=oldstate.AP_INT.half_sum_error;
+ aggregate_cases++;aggregate_fail+=(got!=want);
+ aggregate_latch_fail+=(!oldstate.AP._inhibit_clock_padd_hs_error!=want);
+ if(got!=want&&aggregate_fail<3)std::printf("AGGREGATE_FAIL mask=%02x want=%u got=%u\n",mask,want,got);
+}'''.replace('AGGREGATE_INPUTS',aggregate_inputs)
     for lo in range(4,64,4):
         hi=lo+3;group=f'{lo:02}M{hi:02}'; cg=15-(lo-4)//4
         # Clamp the incoming group carry at the prediction boundary.
@@ -77,6 +94,7 @@ void phase(unsigned a,unsigned b,bool hold){
 int main(){
  unsigned arithmetic_cases=0,arithmetic_fail=0,odd_fail=0,valid_check_fail=0;
  unsigned checker_cases=0,checker_fail=0,predictor_cases=0,predictor_fail=0;
+ unsigned aggregate_cases=0,aggregate_fail=0,aggregate_latch_fail=0;
  for(unsigned a=0;a<256;++a)for(unsigned b=0;b<256;++b){
   reset();phase(a,b,false);
   unsigned data=(oldstate.AP.paddl.F>>28)&255,p=oldstate.AP.paddl_parity_32M39;
@@ -85,10 +103,12 @@ int main(){
  }
  CHECKERS
  PREDICTORS
+ AGGREGATE
  std::printf("AP_TEST arithmetic_cases=%u arithmetic_fail=%u odd_fail=%u valid_check_fail=%u checker_cases=%u checker_fail=%u predictor_cases=%u predictor_fail=%u\n",arithmetic_cases,arithmetic_fail,odd_fail,valid_check_fail,checker_cases,checker_fail,predictor_cases,predictor_fail);
- return arithmetic_fail||odd_fail||valid_check_fail||checker_fail||predictor_fail;
+ std::printf("AP_AGGREGATE cases=%u detector_fail=%u latch_fail=%u\n",aggregate_cases,aggregate_fail,aggregate_latch_fail);
+ return arithmetic_fail||odd_fail||valid_check_fail||checker_fail||predictor_fail||aggregate_fail||aggregate_latch_fail;
 }
-'''.replace('CHECKERS','\n'.join(tests)).replace('PREDICTORS','\n'.join(predictors))
+'''.replace('CHECKERS','\n'.join(tests)).replace('PREDICTORS','\n'.join(predictors)).replace('\n AGGREGATE\n','\n'+aggregate+'\n')
     (out/'fixture.cpp').write_text(fixture)
     cmd=out/'build.cmd';cmd.write_text(f'@echo off\ncall "{VCVARS}" >nul\ncl /nologo /std:c++17 /EHsc /O2 /I"{out}" /I"{gen}" fixture.cpp "{gen / "360_ap.cpp"}" /Fe:fixture.exe\nexit /b %errorlevel%\n')
     result=subprocess.run(['cmd','/c',str(cmd)],cwd=out,capture_output=True,text=True,timeout=90)

@@ -1,7 +1,10 @@
 # ibm360m65
 IBM360 Model 65 CPU Emulation
 
-FPGA revision 1.5 corrects the AP four-bit odd-count predictor polarities and
+FPGA revision 1.6 additionally corrects the AP793 aggregate half-sum detector
+to the original drawing's ODD function. Its complemented XOR falsely raised
+a CE check with all eight individual check lines clear. Revision 1.5 corrected
+the AP four-bit odd-count predictor polarities and
 full-sum error detection. FETOM 2-84/2-85 specifies odd data-plus-parity as valid;
 the original AP394 drawing ends in an even detector. The ALD transcription had
 reversed these functions. C++ CE checks are enabled (SW7 bit 11 high), and SSK

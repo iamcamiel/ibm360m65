@@ -3808,16 +3808,15 @@ NOCLOCK
 ; PAGE AP793
 
 +half sum error
-  NOT
-    XOR
-      -half sum error 04-07
-      -half sum error 08-15
-      -half sum error 16-23
-      -half sum error 24-31
-      -half sum error 32-39
-      -half sum error 40-47
-      -half sum error 48-55
-      -half sum error 56-67
+  XOR
+    -half sum error 04-07
+    -half sum error 08-15
+    -half sum error 16-23
+    -half sum error 24-31
+    -half sum error 32-39
+    -half sum error 40-47
+    -half sum error 48-55
+    -half sum error 56-67
 
 ; PAGE AP801
 

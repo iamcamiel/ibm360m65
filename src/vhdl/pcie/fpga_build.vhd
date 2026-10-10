@@ -1,12 +1,12 @@
 library ieee;
 use ieee.std_logic_1164.all;
 
--- FPGA revision 1.5 corrects AP parity prediction and full-sum error polarity.
+-- FPGA revision 1.6 also corrects the AP793 aggregate half-sum ODD detector.
 -- Interface 1.5 corrects the active-high panel pressed flags.
 -- stamp_fpga_build.tcl fills the UTC timestamp before synthesis.
 package fpga_build is
   constant M65_INTERFACE_VERSION : std_logic_vector(31 downto 0) := x"00010005";
-  constant M65_FPGA_VERSION : std_logic_vector(31 downto 0) := x"00010005";
+  constant M65_FPGA_VERSION : std_logic_vector(31 downto 0) := x"00010006";
   constant M65_BUILD_MAGIC : std_logic_vector(31 downto 0) := x"4D363542"; -- M65B
   constant M65_BUILD_DATE : std_logic_vector(31 downto 0) := x"00000000"; -- YYYYMMDD BCD, UTC
   constant M65_BUILD_TIME : std_logic_vector(31 downto 0) := x"00000000"; -- 00HHMMSS BCD, UTC
