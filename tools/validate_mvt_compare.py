@@ -68,7 +68,9 @@ class Validation:
                 self.waiting = False
             if 'Execution gone astray' in line:
                 raise RuntimeError(line.strip())
-            if line.startswith('M65FAULT '):
+            # A CE indicator alone does not establish a CPU failure. Microcode
+            # controls check sampling and recovery; comparison failures do stop.
+            if line.startswith('M65FAULT ') and 'reason=ce-check ' not in line:
                 raise RuntimeError('First fault requires investigation: ' + line.strip())
 
     def ready(self, model):

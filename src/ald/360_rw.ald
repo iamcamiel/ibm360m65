@@ -162,10 +162,9 @@ SPECIAL
 ; PAGE RW101
 
 +storage key parity
-  NOT
-    XOR
-      +psw parity 8-15
-      +psw bit[12..15]
+  XOR
+    +psw parity 8-15
+    +psw bit[12..15]
 
 ; PAGE RW121
 

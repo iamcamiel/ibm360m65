@@ -55,6 +55,19 @@ class Session:
     def send(self, text):
         self.commands.put(text)
 
+    def observe_fault(self, line):
+        if not line.startswith('M65FAULT '):
+            return
+        if 'reason=ce-check ' in line:
+            # Legacy CE reports are observations, not comparison failures.
+            self.ce_checks += 1
+        elif not self.first_fault:
+            self.first_fault = line.strip()
+            self.auto = False
+            self.controls.put('stop')
+            (self.run / 'first-failure.txt').write_text(line + '\n')
+            print('First fault captured; investigation required', flush=True)
+
     def state(self):
         path = self.run / 'guest-console.log'
         text = path.read_text(errors='replace') if path.exists() else ''
@@ -310,15 +323,7 @@ class Session:
                                     self.controls.put('stop')
                                     (self.run / 'first-failure.txt').write_text(line + '\n')
                                     print('Comparison failure; pausing CPU', flush=True)
-                            if line.startswith('M65FAULT '):
-                                if 'reason=ce-check ' in line:
-                                    self.ce_checks += 1
-                                if not self.first_fault:
-                                    self.first_fault = line.strip()
-                                    self.auto = False
-                                    self.controls.put('stop')
-                                    (self.run / 'first-failure.txt').write_text(line + '\n')
-                                    print('First fault captured; investigation required', flush=True)
+                            self.observe_fault(line)
                     with (self.run / 'console.log').open('rb') as log:
                         log.seek(offsets['console.log'])
                         data = log.read().decode('latin1')

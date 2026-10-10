@@ -1323,7 +1323,7 @@ int run_single_instruction(REGS * regs) {
             // A manual Resume cannot advance beyond the sticky first fault.
             BYTE *saved_aie = regs->aie;
             OBTAIN_INTLOCK(regs);
-            regs->cpustate = CPUSTATE_STOPPED;
+            regs->cpustate = regs->configured ? CPUSTATE_STOPPED : CPUSTATE_STOPPING;
             RELEASE_INTLOCK(regs);
             ARCH_DEP(process_interrupt)(regs);
             regs->aie = saved_aie;
@@ -1561,7 +1561,7 @@ lf = fopen("m65.log", "w");
 #if defined(COMPARE_M65)
         if (m65_fault_pending()) {
             OBTAIN_INTLOCK(&regs);
-            regs.cpustate = CPUSTATE_STOPPED;
+            regs.cpustate = regs.configured ? CPUSTATE_STOPPED : CPUSTATE_STOPPING;
             RELEASE_INTLOCK(&regs);
             ARCH_DEP(process_interrupt)(&regs);
             continue;

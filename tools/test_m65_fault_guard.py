@@ -1,9 +1,12 @@
 """Exercise the production cycle guard and first-fault capture with injected faults."""
 from pathlib import Path
+import argparse
 import subprocess
 from test_hercules_write_recording import VCVARS, function_source, ROOT
 
-OUT = ROOT / 'gen/mvt-ce-start-20261010/guard-test'
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--output', type=Path, required=True)
+OUT = parser.parse_args().output.resolve()
 OUT.mkdir(parents=True, exist_ok=True)
 source = r'''
 #include "360_struc.h"
@@ -21,7 +24,13 @@ int main(int argc,char**argv){
  lf=fopen("m65.log","w");
  newstate.KW_INT._check_reg_1_error=newstate.KW_INT._check_reg_2_error=1;
  single_cycle();if(m65_fault_pending()||passes!=2)return 1;
- if(argc>1)m65_latch_fault("comparison-test");else{inject=true;single_cycle();}
+ inject=true;single_cycle();
+ if(m65_fault_pending()||passes!=4)return 2;
+ if(argc==1){
+  single_cycle();if(m65_fault_pending()||passes!=6)return 3;
+  fclose(lf);printf("CE indicator observed; cycles continue\n");return 0;
+ }
+ m65_latch_fault("comparison-test");
  if(!m65_fault_pending())return 2;
  int held=passes;double held_time=runtime;
  single_cycle();m65_latch_fault("must-not-overwrite");
@@ -42,6 +51,9 @@ for mode in ('ce','comparison'):
  result=subprocess.run([str(OUT/'fixture.exe')]+([] if mode=='ce' else ['compare']),cwd=folder,capture_output=True,text=True)
  print(mode,result.stdout);result.check_returncode()
  import json
- state=json.loads((folder/'first-fault-state.json').read_text())
- assert state['reason']==('ce-check' if mode=='ce' else 'comparison-test')
+ if mode=='ce':
+  assert not (folder/'first-fault-state.json').exists()
+ else:
+  state=json.loads((folder/'first-fault-state.json').read_text())
+  assert state['reason']=='comparison-test'
  assert 'must-not-overwrite' not in (folder/'m65.log').read_text()

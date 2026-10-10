@@ -1,7 +1,14 @@
 # ibm360m65
 IBM360 Model 65 CPU Emulation
 
-FPGA revision 1.6 additionally corrects the AP793 aggregate half-sum detector
+FPGA revision 1.7 corrects RW101 storage-key parity, RF801 parity when replacing
+F bits 4-7, and AS034's positive complement of the negative transmit XOR result.
+CA ALD source has been restored to its committed version, including its original
+load/reset clocking and latch definitions. IC latches retain the generated default initialization; the added
+software parity preset has been removed. CE indicators remain enabled and are
+handled by the ALD/microcode. An asserted indicator alone does not trigger a
+host diagnostic stop; actual comparison mismatches still do.
+Revision 1.6 additionally corrects the AP793 aggregate half-sum detector
 to the original drawing's ODD function. Its complemented XOR falsely raised
 a CE check with all eight individual check lines clear. Revision 1.5 corrected
 the AP four-bit odd-count predictor polarities and

@@ -1432,11 +1432,6 @@ extern "C" {
         process_ald();
 
         cycle_mon();
-#if defined(COMPARE_M65)
-        if (!newstate.PK_PL.disable_check_key &&
-            (!newstate.KW_INT._check_reg_1_error || !newstate.KW_INT._check_reg_2_error))
-            m65_latch_fault("ce-check");
-#endif
     }
 
 #if defined(COMPARE_M65)
