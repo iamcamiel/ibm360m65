@@ -46,6 +46,8 @@ extern void logmsg(char* a, ...);
 
 void full_init();
 void single_cycle();
+bool m65_fault_pending();
+void m65_latch_fault(const char* reason);
 
 #if defined(COMPARE_M65)
 void record_65_write(int sea, int wh, int wl);

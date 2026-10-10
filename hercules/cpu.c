@@ -1252,6 +1252,7 @@ void process_memory(REGS* regs) {
 void twenty_cycle(REGS * regs) {
     for (int i = 0; i < 20; i++) {
         single_cycle();
+        if (m65_fault_pending()) return;
         if (i >= 17)
             process_memory(regs);
     }
@@ -1316,6 +1317,19 @@ int run_single_instruction(REGS * regs) {
         }
 #endif        //        if (z == 10000) exit(1);
         twenty_cycle(regs);
+#if defined(COMPARE_M65)
+        if (m65_fault_pending()) {
+            // Keep the fetched reference instruction and faulting ALD state.
+            // A manual Resume cannot advance beyond the sticky first fault.
+            BYTE *saved_aie = regs->aie;
+            OBTAIN_INTLOCK(regs);
+            regs->cpustate = CPUSTATE_STOPPED;
+            RELEASE_INTLOCK(regs);
+            ARCH_DEP(process_interrupt)(regs);
+            regs->aie = saved_aie;
+            continue;
+        }
+#endif
         /* Console output can precede WTOR setup on this slow model. Expose
            a settled architectural wait so the operator helper can defer
            automatic replies until all runnable OS work has completed. */
@@ -1544,6 +1558,15 @@ lf = fopen("m65.log", "w");
     regs.execflag = 0;
 
     do {
+#if defined(COMPARE_M65)
+        if (m65_fault_pending()) {
+            OBTAIN_INTLOCK(&regs);
+            regs.cpustate = CPUSTATE_STOPPED;
+            RELEASE_INTLOCK(&regs);
+            ARCH_DEP(process_interrupt)(&regs);
+            continue;
+        }
+#endif
 #if !defined(SOFTWARE_M65) && !defined(HARDWARE_M65)
         if (INTERRUPT_PENDING(&regs))
             ARCH_DEP(process_interrupt)(&regs);
@@ -1604,22 +1627,26 @@ retry:
 
         if ((ic != ia + 8) && (ic != ia + 16)) {
             D_fprintf(lf, "Execution gone astray! IC does not match: HERC=%x, M65=%x\n", ia, ic);
+            m65_latch_fault("comparison-ic");
             max_retries = 0;
         }
         int sysm = newstate.RW.psw_bit.F >> 32;
         if (sysm != regs.psw.sysmask) {
             D_fprintf(lf, "Execution gone astray! SYSMASK does not match: HERC=%x, M65=%x\n", regs.psw.sysmask, sysm);
+            m65_latch_fault("comparison-sysmask");
             max_retries = 0;
         }
         int cond = newstate.RW.psw_bit.B34 * 2 + newstate.RW.psw_bit.B35;
         if (cond != regs.psw.cc) {
             RETRY;
             D_fprintf(lf, "Execution gone astray! CC does not match: HERC=%x, M65=%x\n", regs.psw.cc, cond);
+            m65_latch_fault("comparison-cc");
         }
         for (int i = 0; i < 16; i++) {
             if (newstate.ls_mem[i].F != regs.gr[i].F.L.F) {
                 RETRY;
                 D_fprintf(lf, "Execution gone astray! GR%d does not match: HERC=%x, M65=%x\n", i, regs.gr[i].F.L.F, newstate.ls_mem[i].F);
+                m65_latch_fault("comparison-register");
             }
         }
         write_compare();

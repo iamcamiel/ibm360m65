@@ -68,6 +68,8 @@ class Validation:
                 self.waiting = False
             if 'Execution gone astray' in line:
                 raise RuntimeError(line.strip())
+            if line.startswith('M65FAULT '):
+                raise RuntimeError('First fault requires investigation: ' + line.strip())
 
     def ready(self, model):
         return (self.waiting and self.generation > self.consumed

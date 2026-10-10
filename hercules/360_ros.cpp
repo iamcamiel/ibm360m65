@@ -1367,7 +1367,45 @@ extern "C" {
 
     extern double runtime;
 
+    // A diagnostic stop is sticky. Preserve the first failing settled state;
+    // neither a console Resume nor later checks may overwrite its evidence.
+    static bool diagnostic_fault = false;
+    bool m65_fault_pending() { return diagnostic_fault; }
+    void m65_latch_fault(const char* reason) {
+        if (diagnostic_fault) return;
+        diagnostic_fault = true;
+        fprintf(lf, "M65FAULT reason=%s runtime=%.9f ROSAR=%03x IC=%06x\n",
+            reason, runtime, newstate.RX.rosar.F, newstate.CA.ic.F);
+        FILE* snapshot = fopen("first-fault-state.bin", "wb");
+        if (snapshot) {
+            fwrite(&oldstate, sizeof(oldstate), 1, snapshot);
+            fwrite(&newstate, sizeof(newstate), 1, snapshot);
+            fclose(snapshot);
+        }
+        FILE* detail = fopen("first-fault-state.json", "w");
+        if (detail) {
+            fprintf(detail, "{\"reason\":\"%s\",\"runtime\":%.9f,\"rosar\":%u,\"ic\":%u,\"paddl\":\"%016llx\",\"ab\":\"%01llx%016llx\",\"st\":\"%016llx\",\"signals\":{",
+                reason, runtime, newstate.RX.rosar.F, newstate.CA.ic.F,
+                newstate.AP.paddl.F, newstate.RA_RB.ab_bit.F2,
+                newstate.RA_RB.ab_bit.F, newstate.RS_RT.st_bit.F);
+            // Individual active-low check signals are recorded in raw polarity.
+            // The snapshot also retains every other latch and clock phase.
+            fprintf(detail, "\"KW_INT._check_reg_1_error\":%d,\"KW_INT._check_reg_2_error\":%d,\"AP._inhibit_clock_padd_fs_error\":%d,\"AP._inhibit_clock_padd_hs_error\":%d,\"PK_PL.disable_check_key\":%d,\"PK_PL.disable_timer_key\":%d,\"KW._disable_time_clock\":%d,",
+                newstate.KW_INT._check_reg_1_error, newstate.KW_INT._check_reg_2_error,
+                newstate.AP._inhibit_clock_padd_fs_error, newstate.AP._inhibit_clock_padd_hs_error,
+                newstate.PK_PL.disable_check_key, newstate.PK_PL.disable_timer_key,
+                newstate.KW._disable_time_clock);
+#define M65_FAULT_SIGNAL(signal) fprintf(detail, "\"" #signal "\":[%d,%d],", oldstate.signal, newstate.signal);
+#include "m65_fault_signals.inc"
+#undef M65_FAULT_SIGNAL
+            fprintf(detail, "\"snapshot_state_bytes\":%u}}\n", (unsigned)sizeof(newstate));
+            fclose(detail);
+        }
+        fflush(lf);
+    }
+
     void single_cycle() {
+        if (diagnostic_fault) return;
         static int startup = 0;
         runtime += 0.00000001; // 10 ns
 
@@ -1394,6 +1432,11 @@ extern "C" {
         process_ald();
 
         cycle_mon();
+#if defined(COMPARE_M65)
+        if (!newstate.PK_PL.disable_check_key &&
+            (!newstate.KW_INT._check_reg_1_error || !newstate.KW_INT._check_reg_2_error))
+            m65_latch_fault("ce-check");
+#endif
     }
 
 #if defined(COMPARE_M65)
@@ -1424,6 +1467,7 @@ extern "C" {
             D_fprintf(lf, "  %08x\n", io_65);
             D_fprintf(lf, "Herc:\n");
             D_fprintf(lf, "  %08x\n", io_herc);
+            m65_latch_fault("comparison-io");
         }
         io_65 = 0;
         io_herc = 0;
@@ -1481,6 +1525,7 @@ extern "C" {
             for (auto& a : skh)
                 D_fprintf(lf, "  %06x: %02x\n", a.first, a.second);
         }
+        if (w65 != wh || sk65 != skh) m65_latch_fault("comparison-write");
         w65.clear();
         wh.clear();
         sk65.clear();

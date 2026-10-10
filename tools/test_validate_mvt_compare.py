@@ -66,6 +66,12 @@ class ComparisonStartupTests(unittest.TestCase):
         with self.assertRaisesRegex(RuntimeError, 'not disabled'):
             self.validation.observe()
 
+    def test_ce_check_stops_even_with_no_comparison_mismatch(self):
+        (self.validation.run / 'm65.log').write_text(
+            'M65FAULT reason=ce-check runtime=0.000000200 ROSAR=003 IC=000000\n')
+        with self.assertRaisesRegex(RuntimeError, 'ce-check'):
+            self.validation.observe()
+
     @patch('validate_mvt_compare.http')
     def test_timer_confirmation_is_required_before_answering_nip(self, request):
         self.validation.timer_disabled_verified = False

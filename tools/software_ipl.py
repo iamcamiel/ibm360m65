@@ -41,6 +41,8 @@ class Session:
         self.queue_reply_at = None
         self.instructions = 0
         self.errors = 0
+        self.ce_checks = 0
+        self.first_fault = None
         self.milestones = []
         self.started = time.monotonic()
         self.cpu_waiting = False
@@ -60,6 +62,7 @@ class Session:
                   else f'{self.instructions:,} compared instructions · {self.errors} reported mismatches')
         return {'console': text, 'status': f'{self.stage} · {detail}',
                 'instructions': self.instructions, 'comparison_errors': self.errors,
+                'ce_checks': self.ce_checks, 'first_fault': self.first_fault,
                 'cpu_waiting': self.cpu_waiting,
                 'automatic_startup': self.auto, 'cpu_mode': 'hercules' if self.args.reference else 'comparison'}
 
@@ -218,6 +221,8 @@ class Session:
                         command = data['command']
                         if command not in ('start', 'stop', 'quit'):
                             raise ValueError('Unknown CPU control')
+                        if command == 'start' and session.first_fault:
+                            raise ValueError('First fault preserved; investigate before starting a new trial')
                         session.controls.put(command)
                     else:
                         self.send_error(404)
@@ -305,6 +310,15 @@ class Session:
                                     self.controls.put('stop')
                                     (self.run / 'first-failure.txt').write_text(line + '\n')
                                     print('Comparison failure; pausing CPU', flush=True)
+                            if line.startswith('M65FAULT '):
+                                if 'reason=ce-check ' in line:
+                                    self.ce_checks += 1
+                                if not self.first_fault:
+                                    self.first_fault = line.strip()
+                                    self.auto = False
+                                    self.controls.put('stop')
+                                    (self.run / 'first-failure.txt').write_text(line + '\n')
+                                    print('First fault captured; investigation required', flush=True)
                     with (self.run / 'console.log').open('rb') as log:
                         log.seek(offsets['console.log'])
                         data = log.read().decode('latin1')
