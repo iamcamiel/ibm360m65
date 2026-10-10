@@ -14,6 +14,8 @@ architecture RTL of CORE_CLOCK100 is
   signal ready_sync : std_logic_vector(1 downto 0) := "00";
   attribute ASYNC_REG : string;
   attribute ASYNC_REG of ready_sync : signal is "TRUE";
+  attribute SHREG_EXTRACT : string;
+  attribute SHREG_EXTRACT of ready_sync : signal is "NO";
 begin
   pll : PLL_BASE
     generic map (BANDWIDTH => "OPTIMIZED", CLKFBOUT_MULT => 4,

@@ -4,7 +4,7 @@ use ieee.std_logic_1164.all;
 -- Negative-input, negative-output one-shot. One tick is one 10 ns core edge.
 -- A held low input triggers once; pulse expiry does not require its release.
 entity NSSN5500US is
-  port (clk, hclk, rst, hlt, i : in std_logic; o : out std_logic);
+  port (clk, rst, hlt, i : in std_logic; o : out std_logic);
 end NSSN5500US;
 
 architecture Behavioral of NSSN5500US is

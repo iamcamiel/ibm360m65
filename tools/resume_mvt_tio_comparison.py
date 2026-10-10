@@ -9,12 +9,13 @@ import hashlib, json, re, time
 from pathlib import Path
 from validate_mvt_compare import Validation, http
 from live_tio_recording_patch import EXE_SHA256
+from verify_live_recorder import verify_live_patch
 
 PAUSED_AT = 10684557
 EXPECTED = [(10684489, 0x700), (10684512, 0x701), (10684535, 0x702)]
 HEADER = 'Execution gone astray: I/O operations do not match'
 
-def verify_history(model, progress, log, patch=None):
+def verify_history(model, progress, log, patch=None, live_identity=None):
     if not (model['cpu_mode'] == 'comparison' and 'CPU paused' in model['status']
             and model['instructions'] == PAUSED_AT and model['comparison_errors'] == 3):
         raise RuntimeError('Expected the original paused ISK comparison state')
@@ -34,7 +35,7 @@ def verify_history(model, progress, log, patch=None):
         records.append((int(count), int(request,16)&0xffff))
     if records != EXPECTED:
         raise RuntimeError('Historical instruction boundaries or I/O records changed')
-    if patch is not None and not (patch['installed'] and patch['pid']==56296
+    if patch is not None and not (live_identity and patch['installed'] and patch['pid']==live_identity['pid']
             and patch['executable_sha256']==EXE_SHA256
             and patch['io_herc_before']==patch['io_herc_after']==0):
         raise RuntimeError('Expected verified recorder-only patch of the current process')
@@ -55,7 +56,8 @@ class ResumedValidation(Validation):
             f.seek(0)
             head = f.read(262144).decode('latin1')
         patch = json.loads(patch_path.read_text())
-        verify_history(model, progress, tail, patch)
+        identity = verify_live_patch(self.args.backend, patch)
+        verify_history(model, progress, tail, patch, identity)
         if re.findall(r'^M65TIMER .*$',head.replace('\r\n','\n'),re.M) != ['M65TIMER disable_key=1 clock_enable=0']:
             raise RuntimeError('Missing timer-disable evidence')
         manifest = json.loads((self.run/'restart-manifest.json').read_text())
@@ -79,6 +81,7 @@ class ResumedValidation(Validation):
                            acknowledged_error_kind='Verified TIO recorder reports outside IOCE 1',
                            recording_recovery_at=PAUSED_AT,live_patch=str(patch_path),
                            whole_run_clean_comparison=False)
+        self.result['verified_live_patch_identity'] = identity
         marker.write_text(json.dumps(dict(time_utc=datetime.now(timezone.utc).isoformat(),
             before=model, phase=self.phase,log_offset=self.offset,live_patch=str(patch_path),
             repeated_ipl=False,user_authorized_resume=True),indent=2)+'\n')
@@ -114,8 +117,15 @@ class ResumedValidation(Validation):
             self.result['failure']=str(error)
             try:
                 http(self.args.backend,'/control',{'command':'stop'})
-            finally:
-                self.save(model,'Validation stopped: '+str(error))
+            except Exception as stop_error:
+                self.result['failure_stop_error']=str(stop_error)
+            try:
+                model=http(self.args.backend)
+                self.result['failure_status_refreshed']=True
+            except Exception as status_error:
+                self.result['failure_status_refreshed']=False
+                self.result['failure_status_error']=str(status_error)
+            self.save(model,'Validation stopped: '+str(error))
             raise
 
 def main():

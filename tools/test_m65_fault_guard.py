@@ -54,6 +54,15 @@ for mode in ('ce','comparison'):
  if mode=='ce':
   assert not (folder/'first-fault-state.json').exists()
  else:
-  state=json.loads((folder/'first-fault-state.json').read_text())
+  def unique_object(pairs):
+   result={}
+   for name,value in pairs:
+    assert name not in result, 'Duplicate fault snapshot key: '+name
+    result[name]=value
+   return result
+  state=json.loads((folder/'first-fault-state.json').read_text(),object_pairs_hook=unique_object)
   assert state['reason']=='comparison-test'
+  for name in ('AP._inhibit_clock_padd_fs_error','AP._inhibit_clock_padd_hs_error',
+               'KW_INT._check_reg_1_error','KW_INT._check_reg_2_error','PK_PL.disable_check_key'):
+   assert isinstance(state['signals'][name],list) and len(state['signals'][name])==2
  assert 'must-not-overwrite' not in (folder/'m65.log').read_text()

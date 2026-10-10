@@ -196,8 +196,15 @@ class ResumedValidation(Validation):
             self.result['failure']=str(error)
             try:
                 http(self.args.backend,'/control',{'command':'stop'})
-            finally:
-                self.save(model,'Validation stopped: '+str(error))
+            except Exception as stop_error:
+                self.result['failure_stop_error']=str(stop_error)
+            try:
+                model=http(self.args.backend)
+                self.result['failure_status_refreshed']=True
+            except Exception as status_error:
+                self.result['failure_status_refreshed']=False
+                self.result['failure_status_error']=str(status_error)
+            self.save(model,'Validation stopped: '+str(error))
             raise
 
 

@@ -232,6 +232,12 @@ class Validation:
             except OSError:
                 pass
             try:
+                model = http(self.args.backend)
+                self.result['failure_status_refreshed'] = True
+            except Exception as status_error:
+                self.result['failure_status_refreshed'] = False
+                self.result['failure_status_error'] = str(status_error)
+            try:
                 self.save(model, 'Validation stopped: ' + str(error))
             except OSError as save_error:
                 print('Could not save failure status: ' + str(save_error),

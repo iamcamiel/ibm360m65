@@ -1395,11 +1395,8 @@ extern "C" {
                 newstate.RA_RB.ab_bit.F, newstate.RS_RT.st_bit.F);
             // Individual active-low check signals are recorded in raw polarity.
             // The snapshot also retains every other latch and clock phase.
-            fprintf(detail, "\"KW_INT._check_reg_1_error\":%d,\"KW_INT._check_reg_2_error\":%d,\"AP._inhibit_clock_padd_fs_error\":%d,\"AP._inhibit_clock_padd_hs_error\":%d,\"PK_PL.disable_check_key\":%d,\"PK_PL.disable_timer_key\":%d,\"KW._disable_time_clock\":%d,",
-                newstate.KW_INT._check_reg_1_error, newstate.KW_INT._check_reg_2_error,
-                newstate.AP._inhibit_clock_padd_fs_error, newstate.AP._inhibit_clock_padd_hs_error,
-                newstate.PK_PL.disable_check_key, newstate.PK_PL.disable_timer_key,
-                newstate.KW._disable_time_clock);
+            fprintf(detail, "\"PK_PL.disable_timer_key\":%d,\"KW._disable_time_clock\":%d,",
+                newstate.PK_PL.disable_timer_key, newstate.KW._disable_time_clock);
 #define M65_FAULT_SIGNAL(signal) fprintf(detail, "\"" #signal "\":[%d,%d],", oldstate.signal, newstate.signal);
 #include "m65_fault_signals.inc"
 #undef M65_FAULT_SIGNAL

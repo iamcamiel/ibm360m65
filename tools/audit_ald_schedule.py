@@ -24,6 +24,8 @@ def audit(directory):
         sampled=set(re.findall(r'\b(\w+)_sampled <=',vhdl))
         records[section]=(equations,actual,{n.lower() for n in sampled})
     differences=[]; checked=0
+    if not records:
+        differences.append({'reason':'No generated C++ sections found'})
     def split_signal(name):
         parts=name.split('[',1)
         return parts[0], ('['+parts[1] if len(parts)>1 else '')
@@ -52,6 +54,8 @@ def audit(directory):
             else: checked+=1
         for target in actual.keys()-equations.keys():
             differences.append({'section':section,'target':target,'reason':'extra second-pass assignment'})
+    if records and not checked and not differences:
+        differences.append({'reason':'No Boolean second-pass assignments checked'})
     return {'sections':len(records),'checked_second_pass_assignments':checked,'differences':differences,
             'scope':'Boolean equations and snapshot wiring; SPECIAL timing and whole-CPU hardware equivalence excluded'}
 
