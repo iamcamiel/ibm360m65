@@ -1,6 +1,14 @@
 # ibm360m65
 IBM360 Model 65 CPU Emulation
 
+FPGA revision 1.5 corrects the AP four-bit odd-count predictor polarities and
+full-sum error detection. FETOM 2-84/2-85 specifies odd data-plus-parity as valid;
+the original AP394 drawing ends in an even detector. The ALD transcription had
+reversed these functions. C++ CE checks are enabled (SW7 bit 11 high), and SSK
+comparison records use 2 KiB key-block addresses rather than within-block offsets.
+The existing FPGA 1.4 trial and paused comparison are preserved; source regression
+results do not establish a newly deployed FPGA or completed MVT validation.
+
 The FPGA core uses a 100 MHz PLL clock derived from the board's 200 MHz input.
 There is no `hclk` enable. Each 10 ns rising edge stores the first NOCLOCK pass
 and updates CLOCK state, delay primitives and CPU memories. A second NOCLOCK
