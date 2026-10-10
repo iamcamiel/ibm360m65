@@ -77,9 +77,9 @@ int main(){
   oldstate={};newstate={};
   oldstate.RX_INT._pwr_on_reset_gated=!reset;
   oldstate.DS._set_rosar_scan.B8=!scan;process_RX();
-  check(newstate.RX_INT.temp1220==(reset||scan));
+  check(newstate.RX_INT.temp1217==(reset||scan));
   oldstate={};newstate={};
-  oldstate.RX_INT.temp1220=reset||scan;oldstate.RX_INT.p4_gate=1;
+  oldstate.RX_INT.temp1217=reset||scan;oldstate.RX_INT.p4_gate=1;
   process_RX();check(newstate.RX._rosar.B8==!(reset||scan));
  }
  full_init();newstate.KW_INT._reset_delay_ss=1;

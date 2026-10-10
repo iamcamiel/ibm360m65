@@ -1520,9 +1520,10 @@ CLOCK
   NOR
     AND
       -roslth bit[43..46]
-      +temp dr191 3n dp not
+      +ros back up reg 43-46 sample(DS)
     AND
-      -temp dr191 2n dk not
+      NOT
+        +ros back up reg 43-46 sample(DS)
       -ind roslth[43..46]
 +temp dr191 3n dp not
   NOT
@@ -1536,6 +1537,10 @@ CLOCK
     +temp dr191 6g dx nor[44]
     +temp dr191 6g dx nor[45]
     +temp dr191 6g dx nor[46]
+
+; Expose held backup data, rather than its separately delayed XOR.
++ros backup bit[43..46]
+  +temp dr191 6g dx nor[43..46]
 
 ; PAGE DR201
 

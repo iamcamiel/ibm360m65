@@ -15,7 +15,7 @@ def main():
     # These unrelated pulse primitives are boundary stubs; this test observes
     # the contact/inverter path only, not SPECIAL timing or IPL sequencing.
     header='#pragma once\n#include "ald.h"\nextern _ALD oldstate,newstate;\n'
-    for name in ('INT','TD','TD10NS','RLY_PT','SSN5500US','NSSN3US',
+    for name in ('INT','TD','TD10NS','RLY_PT','SSN5500US','NSSN5500US','NSSN3US',
                  'NSSN2800NS','NSSN525NS','NSSN1000MS','NSSN2500MS'):
         header+=f'template<class... T> inline char {name}(char a,T...){{return a;}}\n'
     (out/'360_struc.h').write_text(header)

@@ -33,7 +33,7 @@ void reset(){
  oldstate.RX.rosar.F=0x345;newstate=oldstate;
 }
 void accept(){
- oldstate.KW._error_log_required=0;oldstate.KU_INT.temp704=1;
+ oldstate.KW._error_log_required=0;oldstate.KU_INT.temp_ku351_error_or_split_request=1;
  oldstate.KU_INT._clock_p0M3=oldstate.KU_INT._clock_p1=1;
  newstate=oldstate;newstate.KU_INT._soros_tgr=0;
  check(!m65_ce_ros_branch_taken(false));oldstate=newstate;
@@ -53,7 +53,7 @@ int main(){
  oldstate.KU_INT.logout_pb_gated=oldstate.KU_INT.short_ss_pulse=1;
  accept();check(!branch());
  reset();oldstate.KU_INT._pulsed_split_log_to_soros_set=0;accept();check(!branch());
- reset();oldstate.KU_INT.temp705=oldstate.KU_INT.clock_p0=1;accept();check(!branch());
+ reset();oldstate.KU_INT.temp_ku351_counter_request=oldstate.KU_INT.clock_p0=1;accept();check(!branch());
  reset();accept();newstate=oldstate;newstate.KW_INT.por_ss=1;
  check(!m65_ce_ros_branch_taken(false));oldstate=newstate;check(!branch());
  reset();accept();newstate=oldstate;newstate.KU_INT._soros_tgr=1;
@@ -62,7 +62,7 @@ int main(){
  reset();accept();check(!branch(true,false));check(branch());
  reset();accept();check(!branch(true,true,false));check(branch());
  reset();accept();oldstate.RX.rosar.F=0x019;check(!branch());
- reset();oldstate.KU_INT.temp704=0;
+ reset();oldstate.KU_INT.temp_ku351_error_or_split_request=0;
  oldstate.KW._error_log_required=0;
  oldstate.KU_INT._clock_p0M3=oldstate.KU_INT._clock_p1=1;
  newstate=oldstate;newstate.KU_INT._soros_tgr=0;

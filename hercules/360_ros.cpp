@@ -1422,13 +1422,13 @@ extern "C" {
         // cycle-counter and split-logout requests. KW091 already applies the
         // CPU-check control and machine-check mask; an indicator is insufficient.
         const bool request_phase = oldstate.KU_INT._clock_p0M3 && oldstate.KU_INT._clock_p1;
-        const bool error_set = oldstate.KU_INT.temp704 &&
+        const bool error_set = oldstate.KU_INT.temp_ku351_error_or_split_request &&
             !oldstate.KW._error_log_required && request_phase;
         const bool other_set =
             (!oldstate.KU_INT._pulsed_split_log_to_soros_set && request_phase) ||
             (oldstate.KU_INT.console_log_out_latch && oldstate.KU_INT.logout_pb_gated &&
              oldstate.KU_INT.short_ss_pulse) ||
-            (oldstate.KU_INT.temp705 && oldstate.KU_INT.clock_p0);
+            (oldstate.KU_INT.temp_ku351_counter_request && oldstate.KU_INT.clock_p0);
         if (newstate.KW_INT.por_ss ||
             (!oldstate.KU_INT._soros_tgr && newstate.KU_INT._soros_tgr))
             error_caused_logout = false;

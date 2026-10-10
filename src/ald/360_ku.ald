@@ -1285,10 +1285,7 @@ DECODE
 -soros tgr
   NOR
     AND
-      +temp
-        ORNOT
-          -error log required(KW)
-          -pulsed split log to soros set
+      +temp ku351 error or split request
       -clock p0-3
       -clock p1
     AND
@@ -1296,17 +1293,23 @@ DECODE
       +logout pb gated
       +short ss pulse
     AND
-      +temp
-        NOT
-          -temp
-            NAND
-              +cycle ctr eq 0 lth aq4
-              -set scan ctr cntr ros(DR)
+      +temp ku351 counter request
       +clock p0
     AND
       -mach reset O not log reset
       -scan reset + hard stop reset
       +soros tgr
+
++temp ku351 error or split request
+  ORNOT
+    -error log required(KW)
+    -pulsed split log to soros set
++temp ku351 counter request
+  NOT
+    -temp
+      NAND
+        +cycle ctr eq 0 lth aq4
+        -set scan ctr cntr ros(DR)
 
 -flt + diag flt
   NOT

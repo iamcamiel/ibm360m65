@@ -67,8 +67,9 @@ NOCLOCK
   ANDNOT
     AND
       +temp
-        XOR
-          -ros reg bit[2..42]
+        NOT
+          XOR
+            -ros reg bit[2..42]
       -ros parity error bits 2-42
     AND
       +clock p2 forced

@@ -187,6 +187,8 @@ extern "C" {
 #define NSSN1200NS(oi,no) NSSN(oi,no,120)
 #define NSSN2800NS(oi,no) NSSN(oi,no,280)
 #define NSSN3US(oi,no) NSSN(oi,no,300)
+// NSSN includes the triggering tick; 549999 following ticks make exactly 5.5 ms.
+#define NSSN5500US(oi,no) NSSN(oi,no,549999)
 
  // shortened by factor 1000 for C version
 #define NSSN30MS(oi,no) NSSN(oi,no,3000)

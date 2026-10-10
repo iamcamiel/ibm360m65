@@ -3897,7 +3897,7 @@ NOCLOCK
     -half sum error 32-39     
     -half sum error 40-47     
     -half sum error 48-55     
-    -half sum error 56-63
+    -half sum error 56-67
 +half sum error 04-31     
   ORNOT
     -half sum error 04-07     
@@ -4139,7 +4139,9 @@ NOCLOCK
           +roslth 97-99 odd(RQ)
           +roslth 78-81 odd
           +roslth 82-84 odd
-          -ind roslth parity
+          NOT
+            -ind roslth parity
+          +ros backup decode bit[74..77](AR)
       -clock p1
     AND
       +clock p0

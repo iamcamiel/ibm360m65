@@ -167,13 +167,13 @@ DECODE
           +gt pal to ic
         AND
           -rst ic for pal
-          -rst ic 21-22+par
+          NOT
+            +set ic 21-22+par
           +ic parity 16-23
-;          -temp ca241 4k as nand
-;        AND
-;          -adj parity ic 16-23(DR)
-;          +set ic 21-22+par
-;          -temp ca241 4k as nand
+        AND
+          NOT
+            -adj parity ic 16-23(DR)
+          +set ic 21-22+par
 -ind ic p16-23
   NOT
     +ic parity 16-23

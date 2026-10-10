@@ -1,6 +1,23 @@
 # ibm360m65
 IBM360 Model 65 CPU Emulation
 
+FPGA revision 1.10 corrects the KW093 logout-delay single shots: the falling
+input after an error stop triggers each negative pulse, and the timers advance
+once per 10 ns core edge rather than in both Boolean passes. The new 5.5 ms
+primitive ends its pulse even when its triggering input remains low. The
+finite two-pass Boolean schedule, parity-check equations and latch initialization
+are unchanged. A new validated bitstream is required before hardware use;
+this source repair alone does not imply FPGA deployment or successful logout.
+
+FPGA revision 1.9 corrects AP801 qualified half-sum aggregation, RY/DS/AP ROS
+parity equations, and RT771 PADDA parity selection. ROS backup groups share
+one sampled capture control and the checker evaluates their held data from
+one snapshot. CA241 restores the decoded DR191 adjustment when microcode
+loads IC bits 21-22; its hold term uses that same load control. No IC parity
+power-up preset is added. The two finite Boolean passes and clock phases
+remain unchanged. These source corrections require new FPGA validation and
+a matching bitstream before hardware use; no deployment is implied.
+
 FPGA revision 1.8 corrects RX081's combination of the active-low power-reset
 and scan-set inputs for ROSAR bit 8. Either request can set that bit; the
 previous transcription required both and forced `003` instead of `00B` during
@@ -14,8 +31,9 @@ these source changes alone do not establish successful IPL or a new deployment.
 
 FPGA revision 1.7 corrects RW101 storage-key parity, RF801 parity when replacing
 F bits 4-7, and AS034's positive complement of the negative transmit XOR result.
-CA ALD source has been restored to its committed version, including its original
-load/reset clocking and latch definitions. IC latches retain the generated default initialization; the added
+Revision 1.7 restored the CA ALD load/reset clocking and latch definitions.
+Revision 1.9 adds only the verified microcode parity adjustment described above.
+IC latches retain the generated default initialization; the added
 software parity preset has been removed. CE indicators remain enabled and are
 handled by the ALD/microcode. An asserted indicator alone does not trigger a
 host diagnostic stop; actual comparison mismatches still do. A verified
