@@ -543,7 +543,7 @@ SECTION AS
     -k2 bits 04-07
 -k2 bits 04-07
   NOR
-    -invt predicted parity
+    +invt predicted parity
     AND
       +hot carry into bit 07
       +bit carry[5]
@@ -637,7 +637,8 @@ SECTION AS
 -saddl parity
   NOR
     AND
-      -force sal ones blk err
+      NOT
+        -force sal ones blk err
       -clock p3
     AND
       XOR
@@ -658,6 +659,11 @@ SECTION AS
       +and function   
       +oe par a-par b O par adj(AR)
       +oe transmits bits 00-07
+      -clock p3
+    AND
+      +and function
+      -oe par a-par b O par adj(AR)
+      -oe transmits bits 00-07
       -clock p3
     AND
       +clock p2

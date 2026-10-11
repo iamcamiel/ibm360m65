@@ -752,11 +752,12 @@ DECODE
     +sibb[0..3]
 
 -oe par a-par b O par adj
-  XOR
-    -sadda parity adjust
-    -sadda parity
-    -saddb parity adjust
-    -saddb parity
+  NOT
+    XOR
+      -sadda parity adjust
+      -sadda parity
+      -saddb parity adjust
+      -saddb parity
 +oe par a-par b O par adj
   NOT
     -oe par a-par b O par adj

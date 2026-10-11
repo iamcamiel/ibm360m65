@@ -1,6 +1,14 @@
 # ibm360m65
 IBM360 Model 65 CPU Emulation
 
+FPGA/host revision 1.17 corrects AS075 force-ones parity polarity, the AS072
+K2 parity-invert input, the missing AS075 AND parity product, and the AR582
+complemented parity combination. Native single-instruction OI and NI tests
+check data and parity with machine checks enabled. The finite two-pass schedule
+and SPECIAL behavior are preserved. These repairs do not prove whole-CPU
+hardware equivalence or resolve every check in a copied MVT tail. Hardware
+requires a separately built and validated revision 1.17 bitstream.
+
 FPGA/host revision 1.16 restores CE181 incrementer parity feedback during P2,
 includes complement mode in RT777 parity for forced ones at bits 61–63, and
 uses coherent load/hold pins for all 64 ST data bits and eight parity bits.
@@ -475,7 +483,7 @@ package has a zero date so an unstamped build is rejected.
 
 The hardware emulator reports the FPGA revision and timestamp before issuing
 CPU register commands. It requires interface major 1, interface minor at least
-5, FPGA revision exactly 1.16, the metadata signature and a valid timestamp.
+5, FPGA revision exactly 1.17, the metadata signature and a valid timestamp.
 Legacy bitstreams that returned 1.1 from unused addresses are rejected. The
 build date is diagnostic; matching dates alone never establish compatibility.
 FPGA 1.4 corrects measured active-high Power On/Off, LOAD, INTERRUPT and LOCAL
