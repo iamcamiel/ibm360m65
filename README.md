@@ -1,6 +1,14 @@
 # ibm360m65
 IBM360 Model 65 CPU Emulation
 
+FPGA/host revision 1.18 advances the AR311/AR801 local clock inverter stages
+once per 10 ns core edge, matching AS201 while preserving the intended
+200 ns clock cycle and overlapping inverted phases. This corrects an early
+ROS control transition that corrupts parity in a native N-to-ST sequence.
+The two finite Boolean passes and global SPECIAL behavior remain unchanged.
+Buffered parity feedback and complete hardware equivalence remain limitations;
+hardware requires a separately built and validated revision 1.18 bitstream.
+
 FPGA/host revision 1.17 corrects AS075 force-ones parity polarity, the AS072
 K2 parity-invert input, the missing AS075 AND parity product, and the AR582
 complemented parity combination. Native single-instruction OI and NI tests
@@ -483,7 +491,7 @@ package has a zero date so an unstamped build is rejected.
 
 The hardware emulator reports the FPGA revision and timestamp before issuing
 CPU register commands. It requires interface major 1, interface minor at least
-5, FPGA revision exactly 1.17, the metadata signature and a valid timestamp.
+5, FPGA revision exactly 1.18, the metadata signature and a valid timestamp.
 Legacy bitstreams that returned 1.1 from unused addresses are rejected. The
 build date is diagnostic; matching dates alone never establish compatibility.
 FPGA 1.4 corrects measured active-high Power On/Off, LOAD, INTERRUPT and LOCAL
