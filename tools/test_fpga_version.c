@@ -19,7 +19,8 @@ int main(void)
         {0x10005, magic, 0x10000, 0x20261007, 0x00174503, 0}, /* predates M17 ALD correction */
         {0x10005, magic, 0x10001, 0x20261007, 0x00174503, 0}, /* predates two-pass scheduling */
         {0x10005, magic, 0x10002, 0x20261007, 0x00174503, 0}, /* missing ISK return path */
-        {0x10005, magic, 0x10010, 0x20261007, 0x00174503, 0}, /* unknown later revision */
+        {0x10005, magic, 0x10011, 0x20261007, 0x00174503, 0}, /* unknown later revision */
+        {0x10005, magic, 0x1000f, 0x20261007, 0x00174503, 0}, /* missing CE181 hold, RT777 parity and coherent ST capture */
         {0x10005, magic, 0x1000e, 0x20261007, 0x00174503, 0}, /* missing logout sequencing and delayed P4 */
         {0x10005, magic, 0x1000d, 0x20261007, 0x00174503, 0}, /* missing PADDA bit-58 hot-one input */
         {0x10005, magic, 0x1000c, 0x20261007, 0x00174503, 0}, /* old DR201 latched word-scan decodes */

@@ -1,3 +1,5 @@
+; ST source-load gates below use the complement of the same reset pin as
+; their hold product, preserving coherent capture in the finite two-pass model.
 # * IBM 360 Model 65 Emulator
 # * Copyright (C) 2024 Camiel Vanderhoeven
 # *
@@ -35,16 +37,20 @@ SECTION RS_RT
   NOR
     AND
       +psw to st reg bit[0..7](RW)
-      +gt psw-s00-15t32-39
+      NOT
+        -rst psw-s00-15t32-39
     AND
       +ls bus--[0..7](LS)
-      +gt ls-s
+      NOT
+        -rst ls-s
     AND
       +sdbo[0..7](WA)
-      +gt sdbo00-31-s
+      NOT
+        -rst sdbo00-31-s
     AND
       +saddl[0..7](AS)
-      +gt saddl-st byte[0]
+      NOT
+        -rst saddl-st byte[0]
     AND
       +st bit[0..7]
       -rst psw-s00-15t32-39
@@ -58,16 +64,20 @@ SECTION RS_RT
   NOR
     AND
       +psw to st reg bit[8..15](RW)
-      +gt psw-s00-15t32-39
+      NOT
+        -rst psw-s00-15t32-39
     AND
       +ls bus--[8..15](LS)
-      +gt ls-s
+      NOT
+        -rst ls-s
     AND
       +sdbo[8..15](WA)
-      +gt sdbo00-31-s
+      NOT
+        -rst sdbo00-31-s
     AND
       +saddl[0..7](AS)
-      +gt saddl-st byte[1]
+      NOT
+        -rst saddl-st byte[1]
     AND
       +st bit[8..15]
       -rst psw-s00-15t32-39
@@ -81,16 +91,20 @@ SECTION RS_RT
   NOR
     AND
       +psw to st reg bit[16..23](RW)
-      +gt psw-s16-31
+      NOT
+        -rst psw-s16-31
     AND
       +ls bus--[16..23](LS)
-      +gt ls-s
+      NOT
+        -rst ls-s
     AND
       +sdbo[16..23](WA)
-      +gt sdbo00-31-s
+      NOT
+        -rst sdbo00-31-s
     AND
       +saddl[0..7](AS)
-      +gt saddl-st byte[2]
+      NOT
+        -rst saddl-st byte[2]
     AND
       +st bit[16..23]
       -rst psw-s16-31
@@ -104,16 +118,20 @@ SECTION RS_RT
   NOR
     AND
       +psw to st reg bit[24..31](RW)
-      +gt psw-s16-31
+      NOT
+        -rst psw-s16-31
     AND
       +ls bus--[24..31](LS)
-      +gt ls-s
+      NOT
+        -rst ls-s
     AND
       +sdbo[24..31](WA)
-      +gt sdbo00-31-s
+      NOT
+        -rst sdbo00-31-s
     AND
       +saddl[0..7](AS)
-      +gt saddl-st byte[3]
+      NOT
+        -rst saddl-st byte[3]
     AND
       +st bit[24..31]
       -rst psw-s16-31
@@ -145,16 +163,20 @@ SECTION RS_RT
   NOR
     AND
       +psw to st reg parity 0-7(RW)
-      +gt psw-s00-15t32-39
+      NOT
+        -rst psw-s00-15t32-39
     AND
       +ls bus--parity 00-07(LS)
-      +gt ls-s
+      NOT
+        -rst ls-s
     AND
       +sdbo parity[0](WA)
-      +gt sdbo00-31-s
+      NOT
+        -rst sdbo00-31-s
     AND
       +saddl parity(AS)
-      +gt saddl-st byte[0]
+      NOT
+        -rst saddl-st byte[0]
     AND
       +st parity 00-07
       -rst psw-s00-15t32-39
@@ -178,16 +200,20 @@ SECTION RS_RT
   NOR
     AND
       +psw to st reg parity 8-15(RW)
-      +gt psw-s00-15t32-39
+      NOT
+        -rst psw-s00-15t32-39
     AND
       +ls bus--parity 08-15(LS)
-      +gt ls-s
+      NOT
+        -rst ls-s
     AND
       +sdbo parity[1](WA)
-      +gt sdbo00-31-s
+      NOT
+        -rst sdbo00-31-s
     AND
       +saddl parity(AS)
-      +gt saddl-st byte[1]
+      NOT
+        -rst saddl-st byte[1]
     AND
       +st parity 08-15
       -rst psw-s00-15t32-39
@@ -213,16 +239,20 @@ SECTION RS_RT
   NOR
     AND
       +psw to st reg parity 16-23(RW)
-      +gt psw-s16-31
+      NOT
+        -rst psw-s16-31
     AND
       +ls bus--parity 16-23(LS)
-      +gt ls-s
+      NOT
+        -rst ls-s
     AND
       +sdbo parity[2](WA)
-      +gt sdbo00-31-s
+      NOT
+        -rst sdbo00-31-s
     AND
       +saddl parity(AS)
-      +gt saddl-st byte[2]
+      NOT
+        -rst saddl-st byte[2]
     AND
       +st parity 16-23
       -rst psw-s16-31
@@ -246,16 +276,20 @@ SECTION RS_RT
   NOR
     AND
       +psw to st reg parity 24-31(RW)
-      +gt psw-s16-31
+      NOT
+        -rst psw-s16-31
     AND
       +ls bus--parity 24-31(LS)
-      +gt ls-s
+      NOT
+        -rst ls-s
     AND
       +sdbo parity[3](WA)
-      +gt sdbo00-31-s
+      NOT
+        -rst sdbo00-31-s
     AND
       +saddl parity(AS)
-      +gt saddl-st byte[3]
+      NOT
+        -rst saddl-st byte[3]
     AND
       +st parity 24-31
       -rst psw-s16-31
@@ -269,22 +303,28 @@ SECTION RS_RT
   NOR
     AND
       +psw to st reg bit[32..39](RW)
-      +gt psw-s00-15t32-39
+      NOT
+        -rst psw-s00-15t32-39
     AND
       +ls bus--[0..7](LS)
-      +gt ls-t
+      NOT
+        -rst ls-t
     AND
       +sdbo[0..7](WA)
-      +gt sdbo00-31-t
+      NOT
+        -rst sdbo00-31-t
     AND
       +sdbo[32..39](WA)
-      +gt sdbo32-63-t
+      NOT
+        -rst sdbo32-63-t
     AND
       +saddl[0..7](AS)
-      +gt saddl-st byte[4]
+      NOT
+        -rst saddl-st byte[4]
     AND
       +paddl[32..39](AP)
-      +gt paddl-t32-39
+      NOT
+        -rst paddl-t32-39
     AND
       +st bit[32..39]
       -rst psw-s00-15t32-39
@@ -312,19 +352,24 @@ SECTION RS_RT
   NOR
     AND
       +ls bus--[8..15](LS)
-      +gt ls-t
+      NOT
+        -rst ls-t
     AND
       +sdbo[8..15](WA)
-      +gt sdbo00-31-t
+      NOT
+        -rst sdbo00-31-t
     AND
       +sdbo[40..47](WA)
-      +gt sdbo32-63-t
+      NOT
+        -rst sdbo32-63-t
     AND
       +saddl[0..7](AS)
-      +gt saddl-st byte[5]
+      NOT
+        -rst saddl-st byte[5]
     AND
       +paddl[40..47](AP)
-      +gt paddl-t40-63
+      NOT
+        -rst paddl-t40-63
     AND
       +st bit[40..47]
       -rst ls-t
@@ -343,19 +388,24 @@ SECTION RS_RT
   NOR
     AND
       +ls bus--[16..23](LS)
-      +gt ls-t
+      NOT
+        -rst ls-t
     AND
       +sdbo[16..23](WA)
-      +gt sdbo00-31-t
+      NOT
+        -rst sdbo00-31-t
     AND
       +sdbo[48..55](WA)
-      +gt sdbo32-63-t
+      NOT
+        -rst sdbo32-63-t
     AND
       +saddl[0..7](AS)
-      +gt saddl-st byte[6]
+      NOT
+        -rst saddl-st byte[6]
     AND
       +paddl[48..55](AP)
-      +gt paddl-t40-63
+      NOT
+        -rst paddl-t40-63
     AND
       +st bit[48..55]
       -rst ls-t
@@ -370,19 +420,24 @@ SECTION RS_RT
   NOR
     AND
       +ls bus--[24..31](LS)
-      +gt ls-t
+      NOT
+        -rst ls-t
     AND
       +sdbo[24..31](WA)
-      +gt sdbo00-31-t
+      NOT
+        -rst sdbo00-31-t
     AND
       +sdbo[56..63](WA)
-      +gt sdbo32-63-t
+      NOT
+        -rst sdbo32-63-t
     AND
       +saddl[0..7](AS)
-      +gt saddl-st byte[7]
+      NOT
+        -rst saddl-st byte[7]
     AND
       +paddl[56..63](AP)
-      +gt paddl-t40-63
+      NOT
+        -rst paddl-t40-63
     AND
       +st bit[56..63]
       -rst ls-t
@@ -409,22 +464,28 @@ SECTION RS_RT
   NOR
     AND
       +psw to st reg parity 32-39(RW)
-      +gt psw-s00-15t32-39
+      NOT
+        -rst psw-s00-15t32-39
     AND
       +ls bus--parity 00-07(LS)
-      +gt ls-t
+      NOT
+        -rst ls-t
     AND
       +sdbo parity[0](WA)
-      +gt sdbo00-31-t
+      NOT
+        -rst sdbo00-31-t
     AND
       +sdbo parity[4](WA)
-      +gt sdbo32-63-t
+      NOT
+        -rst sdbo32-63-t
     AND
       +saddl parity(AS)
-      +gt saddl-st byte[4]
+      NOT
+        -rst saddl-st byte[4]
     AND
       +paddl parity 32-39(AP)
-      +gt paddl-t32-39
+      NOT
+        -rst paddl-t32-39
     AND
       +st parity 32-39
       -rst psw-s00-15t32-39
@@ -453,19 +514,24 @@ SECTION RS_RT
   NOR
     AND
       +ls bus--parity 08-15(LS)
-      +gt ls-t
+      NOT
+        -rst ls-t
     AND
       +sdbo parity[1](WA)
-      +gt sdbo00-31-t
+      NOT
+        -rst sdbo00-31-t
     AND
       +sdbo parity[5](WA)
-      +gt sdbo32-63-t
+      NOT
+        -rst sdbo32-63-t
     AND
       +saddl parity(AS)
-      +gt saddl-st byte[5]
+      NOT
+        -rst saddl-st byte[5]
     AND
       +paddl parity 40-47(AP)
-      +gt paddl-t40-63
+      NOT
+        -rst paddl-t40-63
     AND
       +st parity 40-47
       -rst ls-t
@@ -533,19 +599,24 @@ SECTION RS_RT
   NOR
     AND
       +ls bus--parity 16-23(LS)
-      +gt ls-t
+      NOT
+        -rst ls-t
     AND
       +sdbo parity[2](WA)
-      +gt sdbo00-31-t
+      NOT
+        -rst sdbo00-31-t
     AND
       +sdbo parity[6](WA)
-      +gt sdbo32-63-t
+      NOT
+        -rst sdbo32-63-t
     AND
       +saddl parity(AS)
-      +gt saddl-st byte[6]
+      NOT
+        -rst saddl-st byte[6]
     AND
       +paddl parity 48-55(AP)
-      +gt paddl-t40-63
+      NOT
+        -rst paddl-t40-63
     AND
       +st parity 48-55
       -rst ls-t
@@ -573,19 +644,24 @@ SECTION RS_RT
   NOR
     AND
       +ls bus--parity 24-31(LS)
-      +gt ls-t
+      NOT
+        -rst ls-t
     AND
       +sdbo parity[3](WA)
-      +gt sdbo00-31-t
+      NOT
+        -rst sdbo00-31-t
     AND
       +sdbo parity[7](WA)
-      +gt sdbo32-63-t
+      NOT
+        -rst sdbo32-63-t
     AND
       +saddl parity(AS)
-      +gt saddl-st byte[7]
+      NOT
+        -rst saddl-st byte[7]
     AND
       +paddl parity 56-63(AP)
-      +gt paddl-t40-63
+      NOT
+        -rst paddl-t40-63
     AND
       +st parity 56-63
       -rst ls-t
@@ -1004,6 +1080,7 @@ SECTION RS_RT
       +gt d padda 07-30 t-l1
       +gt d padda 07-30 c-l1
 
+; Five complemented D bits change parity before forcing the lower three ones.
 -st padda bus parity 56-63
   NOR
     AND
@@ -1032,6 +1109,7 @@ SECTION RS_RT
       +gt ones--padda 61-63
       XOR
         +d bit[16..20](RD)
+        +gt d padda 40-63 c
     AND
       -block padda bus pty 56-63
       ANDNOT

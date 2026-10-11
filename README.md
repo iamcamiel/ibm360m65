@@ -1,6 +1,14 @@
 # ibm360m65
 IBM360 Model 65 CPU Emulation
 
+FPGA/host revision 1.16 restores CE181 incrementer parity feedback during P2,
+includes complement mode in RT777 parity for forced ones at bits 61–63, and
+uses coherent load/hold pins for all 64 ST data bits and eight parity bits.
+The finite two-pass schedule and sticky error guards remain unchanged.
+A later storage check in the short reconstruction remains under investigation;
+these repairs do not establish whole-CPU hardware equivalence. Hardware needs
+a newly validated revision 1.16 bitstream; the Pi remains off.
+
 FPGA revision 1.15 repairs the logout sequence and CAS storage clock, and
 reconnects AP581's PADDA bit 58 to RT845's hot-one input. The KU controls use
 coherent clock snapshots and a single capture/commit per sequencer decrement;
@@ -13,8 +21,7 @@ wire names. Full physical equivalence and routed timing remain unproved.
 A fresh single-DIAG trial completes CAS and reaches a WAIT PSW with healthy
 adder checks. A separate real-error DIAG reaches an attributed forced ROS019
 transfer and the sticky fault stop. Global scheduling and check guards remain
-enabled. Hardware requires a newly validated revision 1.15 bitstream; the Pi
-remains off.
+enabled. This describes the preceding revision 1.15 tests.
 
 FPGA revision 1.13 corrects DR201's left/right word-scan gates to use the
 ROS register pins and shared scan-field register enable shown at 6L and 6N.
@@ -468,7 +475,7 @@ package has a zero date so an unstamped build is rejected.
 
 The hardware emulator reports the FPGA revision and timestamp before issuing
 CPU register commands. It requires interface major 1, interface minor at least
-5, FPGA revision exactly 1.15, the metadata signature and a valid timestamp.
+5, FPGA revision exactly 1.16, the metadata signature and a valid timestamp.
 Legacy bitstreams that returned 1.1 from unused addresses are rejected. The
 build date is diagnostic; matching dates alone never establish compatibility.
 FPGA 1.4 corrects measured active-high Power On/Off, LOAD, INTERRUPT and LOCAL
