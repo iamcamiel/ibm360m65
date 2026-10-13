@@ -1,5 +1,31 @@
+FPGA/host revision 1.30 corrects DP091 to detect even MPR data-plus-parity, restores MA241 scan parity for the zero upper SAB byte, and isolates AP591 bit59 normal sum from scan bypass. These defects are traced through original ALDs and recorded r37 windows. The AP591 change is limited to bit59; remaining AP scan omissions are not included. Prior repairs, zero PSBAR in plain360/65, interface1.5, all CLOCK equations and finite two-pass/global SPECIAL scheduling are retained. Functional tests do not establish MVT completion, complete hardware equivalence or routed timing.
+
+FPGA/host revision 1.29 restores AP321 positive scan bit32. In the r36 scan window, its omission changes byte FF to 7F before a later MB parity check; SOROS was already accepted from BF. At the user request, the FAA-only PSBAR absent on a plain 360/65 now reads zero data with normal odd parity F through the DR171/BF701 source gate. H2 writes leave the absent register zero. This is a 360/65 adaptation, not full FAA PSBAR emulation. Rejected LS parity output masking and exploratory scan-parity changes remain uninstalled. Revision 1.28 and earlier repairs, interface 1.5, finite two-pass/global SPECIAL scheduling and overlapping clocks are retained. Functional tests do not establish MVT completion or full hardware equivalence.
+
+FPGA/host revision 1.28 corrects AP747 precheck inputs to AP671 injected bits 64/65 (BQ4/BP4), retaining the equivalent bits 66/67. Authentic r35 captures establish the missing hot-bit source and retained AP751 check. A private correction passes 1024 pin cases and clears that check in a limited recorded-gate replay. The separate MB fault captured B9 instead of B7 from earlier AP555/ST parity; its initial source remains unresolved. Revision 1.27 AP752 and earlier repairs, interface 1.5, all clock equations, finite two-pass/global SPECIAL scheduling and overlapping clocks are retained. Full hardware equivalence is not proved.
+FPGA/host revision 1.22 restores the AP675 AN inverter from +SUM63 into right-one shift parity, matching the ALD scan. The named inverter remains NOCLOCK; all clock equations and earlier repairs are preserved. Host and FPGA compatibility must match 1.22; hardware requires a separately built matching bitstream. Functional C++/VHDL and native tests do not prove complete SPECIAL behavior, hardware equivalence or routed timing.
+
+FPGA/host revision 1.21 corrects CE181 D-to-incrementer parity: positive E8-11 even XOR D18-21 odd, matching the ALD scan gates. The AP801 coherent clock complement repair from 1.20 is retained. Host and FPGA compatibility must match 1.21; hardware requires a separately built matching bitstream. Functional C++/VHDL and native shift tests do not prove complete SPECIAL behavior, hardware equivalence or routed timing.
+
 # ibm360m65
 IBM360 Model 65 CPU Emulation
+
+FPGA/host revision 1.20 derives the AP801 extended half-sum check controls
+from the same settled input pins. This preserves the BJ-to-BK inverter
+relationship without adding another 10 ns registered delay. Both controls
+remain in CLOCK; intentional machine-phase overlap, the finite two-pass
+schedule and global SPECIAL behavior are preserved. Native MVC tests check
+stored bytes, WAIT and CE checks. The separate CE181 D-source parity-polarity defect affects SRL/SRA; its
+correction is verified privately and remains outside this revision. Hardware requires a
+separately built and validated revision 1.20 bitstream; no hardware was deployed.
+
+FPGA/host revision 1.19 corrects the crossed AP635 left-four shift parity
+inputs: AL B09 receives positive bits 60-63 odd with inverted bus parity,
+and AM B03 receives negative bits 60-63 odd with positive bus parity.
+Native load-halfword tests check sign extension, stored data, WAIT and CE
+checks. All clock equations and the finite two-pass schedule are preserved.
+Hardware requires a separately built and validated revision 1.19 bitstream;
+these functional tests do not establish complete hardware equivalence.
 
 FPGA/host revision 1.18 advances the AR311/AR801 local clock inverter stages
 once per 10 ns core edge, matching AS201 while preserving the intended
@@ -491,7 +517,7 @@ package has a zero date so an unstamped build is rejected.
 
 The hardware emulator reports the FPGA revision and timestamp before issuing
 CPU register commands. It requires interface major 1, interface minor at least
-5, FPGA revision exactly 1.18, the metadata signature and a valid timestamp.
+5, FPGA revision exactly 1.20, the metadata signature and a valid timestamp.
 Legacy bitstreams that returned 1.1 from unused addresses are rejected. The
 build date is diagnostic; matching dates alone never establish compatibility.
 FPGA 1.4 corrects measured active-high Power On/Off, LOAD, INTERRUPT and LOCAL

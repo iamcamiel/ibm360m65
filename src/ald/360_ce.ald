@@ -300,7 +300,7 @@ SECTION CE
           +gate d18-21 to incr12-15
           -clock p3(RE)
           XOR
-            -e reg bits 8-11 even(RE)
+            +e reg bits 8-11 even(RE)
             +d reg bits 18-21 odd(RD)
         AND
           +gate cone to incr12-15

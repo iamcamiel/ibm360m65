@@ -30,6 +30,10 @@ SECTION BF
 
 ; PAGE BF075
 
+; PSBAR is FAA-only. In this 360/65 implementation its data are constant zero,
+; so a selected read contributes no data and odd parity one in all four bytes.
+; Keep that parity behind the original BF701 read-source gate.
+
 -+9020 out bus bit p00-07
   NOT
     +temp
@@ -39,6 +43,7 @@ SECTION BF
             AND
               +ext reg p 00-07
               +gate ext reg to ls bus 00-31
+            +gate psbar to ls bus
 
 ; PAGE BF155
 
@@ -51,6 +56,7 @@ SECTION BF
             AND
               +ext reg p 08-15
               +gate ext reg to ls bus 00-31
+            +gate psbar to ls bus
 
 ; PAGE BF235
 
@@ -63,6 +69,7 @@ SECTION BF
             AND
               +ext reg p 16-23
               +gate ext reg to ls bus 00-31
+            +gate psbar to ls bus
 
 ; PAGE BF241
 
@@ -93,6 +100,7 @@ SECTION BF
             AND
               +g reg p 00-07
               +gate g reg to ls bus 24-31
+            +gate psbar to ls bus
 
 ; PAGE BF401
 
@@ -272,6 +280,20 @@ SECTION BF
         -select ext reg(DR)
 
 ; PAGE BF711
+
+; BF701: positive source enable requires the negative RY read control low
+; and the negative DR171 PSBAR select low. An H2 write supplies no bus data.
++gate psbar to ls bus
+  NOT
+    -gate psbar to ls bus
+-gate psbar to ls bus
+  NAND
+    +temp
+      NOT
+        -+9020 regs to ls bus out(RY)
+    +temp
+      NOT
+        -select psbar reg(DR)
 
 +gate g reg to ls bus 24-31
   NOT

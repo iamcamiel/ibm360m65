@@ -19,7 +19,19 @@ int main(void)
         {0x10005, magic, 0x10000, 0x20261007, 0x00174503, 0}, /* predates M17 ALD correction */
         {0x10005, magic, 0x10001, 0x20261007, 0x00174503, 0}, /* predates two-pass scheduling */
         {0x10005, magic, 0x10002, 0x20261007, 0x00174503, 0}, /* missing ISK return path */
-        {0x10005, magic, 0x10013, 0x20261007, 0x00174503, 0}, /* unknown later revision */
+        {0x10005, magic, 0x1001f, 0x20261007, 0x00174503, 0}, /* unknown later revision */
+        {0x10005, magic, 0x1001d, 0x20261007, 0x00174503, 0}, /* missing DP091, MA241 and AP591 corrections */
+        {0x10005, magic, 0x1001c, 0x20261007, 0x00174503, 0}, /* missing AP321 scan bit32 and zero PSBAR read */
+        {0x10005, magic, 0x1001b, 0x20261007, 0x00174503, 0}, /* AP747 omits injected bits 64/65 */
+        {0x10005, magic, 0x1001a, 0x20261007, 0x00174503, 0}, /* AP752 uses delayed negative HALF SUM63 instead of positive pin */
+        {0x10005, magic, 0x10019, 0x20261007, 0x00174503, 0}, /* delayed ROS register complement creates false RY131 disable pulse */
+        {0x10005, magic, 0x10018, 0x20261007, 0x00174503, 0}, /* RY131 WRITE polarity blocks external-register load */
+        {0x10005, magic, 0x10017, 0x20261007, 0x00174503, 0}, /* defective RY131 P0 input and ROS36 polarity */
+        {0x10005, magic, 0x10016, 0x20261007, 0x00174503, 0}, /* missing RY131 decode inputs and polarity */
+        {0x10005, magic, 0x10015, 0x20261007, 0x00174503, 0}, /* missing AP675 AN right-one parity inverter */
+        {0x10005, magic, 0x10014, 0x20261007, 0x00174503, 0}, /* inverted CE181 D-source parity */
+        {0x10005, magic, 0x10013, 0x20261007, 0x00174503, 0}, /* delayed AP801 complement */
+        {0x10005, magic, 0x10012, 0x20261007, 0x00174503, 0}, /* crossed AP635 left-four parity inputs */
         {0x10005, magic, 0x10011, 0x20261007, 0x00174503, 0}, /* missing local serial-adder clock delays */
         {0x10005, magic, 0x10010, 0x20261007, 0x00174503, 0}, /* missing serial-adder parity repairs */
         {0x10005, magic, 0x1000f, 0x20261007, 0x00174503, 0}, /* missing CE181 hold, RT777 parity and coherent ST capture */

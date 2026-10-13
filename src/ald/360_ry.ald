@@ -88,9 +88,17 @@ CLOCK
     +clock p0-2
 
 
+; RY015/RY131 output polarities belong to the same register network.
+; Derive the negative output from the same settled sense/hold pins as
+; the positive NOR output; NOT of the registered positive adds a core edge.
 -ros reg bit[0..42]
-  NOT
-    +ros reg bit[0..42]
+  OR
+    AND
+      -ros sense lth bit[0..42](EF)
+      +clock p0 forced
+    AND
+      -clock p0-1Onot block
+      -ros reg bit[0..42]
 +ros reg bit[0..42]
   NOR
     AND
@@ -218,17 +226,16 @@ NOCLOCK
     +ros reg bit[37]
     -ros reg bit[38]
 
+; RY131 BE has negative output, BA negative input, BF/BQ negative outputs.
+; BA and BF/BQ each preserve their input voltage through two inversions.
+; These two named outputs therefore have the same Boolean voltage value.
 -+9020 regs to ls bus out
-  NOT
-    +temp
-      NOT
-        +write 9020 reg
+  NAND
+    +ros reg bit[36]
+    -ros reg bit[37]
 +write 9020 reg
   NAND
     +ros reg bit[36]
-    +temp
-      NOT
-        -ros reg bit[36]
     -ros reg bit[37]
 
       

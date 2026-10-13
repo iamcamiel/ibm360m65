@@ -28,16 +28,17 @@ def add(kind,file,vfile,target,section,cases):
   assert all(ref in values for ref in refs),(target,refs,values)
   tests.append((expr,ve,section,values,int(expected),kind))
  counts[kind]=counts.get(kind,0)+len(cases)
-expr=rhs('360_ce.cpp','CE_INT._temp253');refs=sorted(set(re.findall(refpat,expr)));assert len(refs)==12,refs
+ce_target=re.search(r'newstate\.CE\.incr_bits_8M15_even = !oldstate\.([\w.]+);',(G/'360_ce.cpp').read_text())[1]
+expr=rhs('360_ce.cpp',ce_target);refs=sorted(set(re.findall(refpat,expr)));assert len(refs)==11,refs
 cases=[]
 for bits in itertools.product([0,1],repeat=len(refs)):
  d=dict(zip(refs,bits));a=lambda field:d['oldstate.'+field]
  prediction=(a('CE_INT._block_predicted_parity') and (a('RE.e_reg_bits_8M15_even') ^ a('CE_INT.change_parity_of_e8M11') ^ a('CE_INT.change_parity_of_e12M15')))
- prediction|=a('CE_INT.gate_d18M21_to_incr12M15') and (a('RE._e_reg_bits_8M11_even') ^ a('RD.d_reg_bits_18M21_odd'))
+ prediction|=a('CE_INT.gate_d18M21_to_incr12M15') and (a('RE.e_reg_bits_8M11_even') ^ a('RD.d_reg_bits_18M21_odd'))
  prediction|=a('CE_INT.gate_cone_to_incr12M15') and a('RE.e_reg_bits_8M11_even')
  expected=not ((a('RE._clock_p3') and prediction) or (a('RE.clock_p2_incr_reset') and a('CE.incr_bits_8M15_even')))
  cases.append((d,expected))
-add('CE181','360_ce.cpp','360_ce.vhd','CE_INT._temp253','CE',cases)
+add('CE181','360_ce.cpp','360_ce.vhd',ce_target,'CE',cases)
 expr=rhs('360_rs.cpp','RS_RT._st_padda_bus_parity_56M63');refs=sorted(set(re.findall(refpat,expr)));cases=[]
 for byte in range(256):
  for comp in range(2):

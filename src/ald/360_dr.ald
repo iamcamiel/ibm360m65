@@ -1286,6 +1286,12 @@ DECODE
 
 ; PAGE DR171
 
+; H2/H66 select PSBAR; H66 reads the absent FAA register as zero in 360/65 mode.
+-select psbar reg
+  NOR
+    +temp h[2]
+    +temp h[66]
+
 ; H1
 -select ext reg
   NOR

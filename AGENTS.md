@@ -122,6 +122,19 @@ they change an earlier authorization or constraint. Leave commits to the user.
 - On verified build/audit completion or a terminal failure needing attention,
   report the actual result and pause the ISE heartbeat. On verified MVT completion,
   user stop or failure needing attention, report it and pause the MVT heartbeat.
+- Whenever a comparison run ends in a logout, trace it through the original
+  ALDs to establish any transcription error, automatically and without another
+  request. Do not assume every logout proves a transcription error; continue
+  until a source is established or document the precise missing evidence.
+- Whenever a comparison run fails, the user requests automatic fault tracing
+  without waiting for another request. Preserve its sticky stop and evidence,
+  pause only its MVT heartbeat, and continue tracing the accepted request and
+  actual forced transfer or mismatch back through the original ALDs. Open
+  triangles mark negative inputs/outputs; account for each pin's polarity.
+  Use isolated private probes when useful, distinguish reproduced behavior from
+  exact historical replay, and report the earliest established source or the
+  evidence needed to resolve it. This authorizes investigation, not installing
+  another repair, resuming a failed CPU or restarting without user authorization.
 
 Use existing scripts and evidence to recover transient progress. Keep this file
 focused on durable working rules, not a log of process IDs and elapsed counts.

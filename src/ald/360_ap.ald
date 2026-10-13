@@ -347,43 +347,86 @@ NOCLOCK
     AND
       +clock p2 extended
       +paddl[4..7]
--latched sum[8..32]
+-latched sum[8..31]
   NOR
     AND
-      +sum[8..32]
+      +sum[8..31]
       +zero shift or enable scan
       -clock p3 extended
     AND
-      +sum[12..36]
+      +sum[12..35]
       +left 4 shift
       -clock p3 extended
     AND
-      +sum[4..28]
+      +sum[4..27]
       +right 4 shift
       -clock p3 extended
     AND
       +clock p2 extended
-      +paddl[8..32]
--latched sum[33..59]
+      +paddl[8..31]
+
+; AP321: bit32 has a positive scan-bypass input, unlike bits8-31.
+-latched sum[32]
   NOR
     AND
-      +scan out bus bit[33..59](KT)
+      +scan out bus bit[32](KT)
       +enable scan bypass
     AND
-      +sum[33..59]
+      +sum[32]
       +zero shift or enable scan
       -clock p3 extended
     AND
-      +sum[37..63]
+      +sum[36]
       +left 4 shift
       -clock p3 extended
     AND
-      +sum[29..55]
+      +sum[28]
       +right 4 shift
       -clock p3 extended
     AND
       +clock p2 extended
-      +paddl[33..59]
+      +paddl[32]
+-latched sum[33..58]
+  NOR
+    AND
+      +scan out bus bit[33..58](KT)
+      +enable scan bypass
+    AND
+      +sum[33..58]
+      +zero shift or enable scan
+      -clock p3 extended
+    AND
+      +sum[37..62]
+      +left 4 shift
+      -clock p3 extended
+    AND
+      +sum[29..54]
+      +right 4 shift
+      -clock p3 extended
+    AND
+      +clock p2 extended
+      +paddl[33..58]
+; AP591: normal sum59 is qualified by ZERO SHIFT, separately from scan bypass.
+-latched sum[59]
+  NOR
+    AND
+      +scan out bus bit[59](KT)
+      +enable scan bypass
+    AND
+      +sum[59]
+      +zero shift
+      -clock p3 extended
+    AND
+      +sum[63]
+      +left 4 shift
+      -clock p3 extended
+    AND
+      +sum[55]
+      +right 4 shift
+      -clock p3 extended
+    AND
+      +clock p2 extended
+      +paddl[59]
 -latched sum[60..63]
   NOR
     AND
@@ -2520,14 +2563,14 @@ NOCLOCK
           AND
             +left 4 shift
             -clock p3 extended
-            -bits 60-63 odd
+            +bits 60-63 odd
             -temp
               NOT
                 +bus parity 64-67
           AND
             +left 4 shift
             -clock p3 extended
-            +bits 60-63 odd
+            -bits 60-63 odd
             +bus parity 64-67
           AND
             +clock p2 extended
@@ -2945,10 +2988,15 @@ NOCLOCK
 
 ; PAGE AP675
 
+; AP675 1A AN B03->D07 inverts AP631 +SUM63 for parity gate1B AA B02.
++temp ap675 1a an not
+  NOT
+    +sum[63]
+
 -paddl parity 64-67
   NOR
     AND
-      +sum[63]
+      +temp ap675 1a an not
       -clock p3 extendedOshift r1
     AND
       +right 4 shift
@@ -3479,9 +3527,10 @@ NOCLOCK
 
 ; PAGE AP747
 
+; AP671 BQ4/BP4 include injected bits 64/65; bits 66/67 match both paths.
 -half sum error 64-67
   XOR
-    +padd bit a[64..67]
+    +padd bit b[64..67]
     +left shift par adj
     +ab 64-65 odd on l2 shift
     ++2 comp 64-67 par adj
@@ -3537,11 +3586,15 @@ NOCLOCK
 
 ; PAGE AP752
 
+; AP752 1M AD D12 consumes AP631 AN4 positive HALF SUM63.
+; Preserve the final precheck polarity without the negative bit63 stage.
 -half sum error 56-63
-  XOR
-    -half sum[56..63]
-    -padda bus parity 56-63
-    +paddb bus parity 56-63
+  NOT
+    XOR
+      -half sum[56..62]
+      +half sum[63]
+      -padda bus parity 56-63
+      +paddb bus parity 56-63
 
 ; PAGE AP761
 
@@ -3861,9 +3914,14 @@ NOCLOCK
 
 CLOCK
 
+; AP801 7J BJ D10 feeds inverter 7G BK B07->D06. Derive both
+; complementary controls from the same settled input pins in CLOCK;
+; reading the registered BJ output here adds an unintended core edge.
 -clock p3 extended O no error
-  NOT
-    +clock p2 extended or error
+  AND
+    -clock p1
+    -clock p3
+    -inhibit clock padd hs error
 
 +clock p2 extended or error
   ORNOT
