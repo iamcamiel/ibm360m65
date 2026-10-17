@@ -184,7 +184,7 @@ SECTION WA
 +reg se cmd[31..30](*)
   +se counter out[0..1]
 +reg se cmd[29..25](*)
-  +in key[0..4](MB)
+  +key[0..4]
 +reg se cmd[24..5](*)
   0
 +reg se cmd[4](*)
@@ -259,18 +259,12 @@ SECTION WA
         +store
       +sdbo[32..63]
 
--prev sel
-  NOT
-    +sel
+
 +sel
   ANDNOT
     -select se 1 even(MC)
     +se busy
 
-+do sel
-  AND
-    +sel
-    -prev sel
 
 +cancel
   OR
@@ -329,6 +323,16 @@ SECTION WA
         +do sel
       +addr[1..20]
 
++key[0..4]
+  OR
+    AND
+      +do sel
+      +in key[0..4](MB)
+    AND
+      NOT
+        +do sel
+      +key[0..4]
+
 +mark[0..7]
   OR
     AND
@@ -348,14 +352,7 @@ SECTION WA
       +se counter out[1]
       +se counter in[0]
 
--prev se counter eq
-  NOT
-    +se counter eq
 
-+se counter pulse
-  AND
-    +se counter eq
-    -prev se counter eq
 
 +inc se counter
   OR
@@ -367,21 +364,7 @@ SECTION WA
       +delay sel 2
       +store
 
-+se counter out[1]
-  XOR
-    +inc se counter
-    +se counter out[1]
-+se counter out[0]
-  OR
-    AND
-      +inc se counter
-      XOR
-        +se counter out[0]
-        +se counter out[1]
-    AND
-      NOT
-        +inc se counter
-      +se counter out[0]
+
 
 SPECIAL
   DOUBLETD40NS
@@ -453,11 +436,15 @@ SPECIAL
 
 +se busy
   OR
-    +accept pulse
+    +do sel
     AND
       +se busy
       NOT
         +adv del
+
+; The digital storage bridge advances edge history and sequence once per core
+; clock. Busy spans selection through delayed completion; matching idle counters
+; are not a response. Hold key payload with address/marks until the next select.
 
 ;+se cmd[2](*)
 ;  +normal operation(MB)
@@ -496,6 +483,7 @@ SPECIAL
 
 +key advance
   AND
+    +se response seen
     +insert key
     +se key valid
     +se counter eq
@@ -607,3 +595,58 @@ SPECIAL
   0
 +gap ioce 1
   0
+
+; Storage-bridge state updates once per 100 MHz core edge. Original CPU sections
+; and global two-pass/SPECIAL scheduling retain their existing behavior.
+CLOCK
+
+; Explicit CLOCK buffer: keep edge history distinct under -O1 alias collapse.
+; Retain a new falling selection seen while busy until it can be accepted.
+; An already accepted held-low selection still has prev sel low and cannot repeat.
+-prev sel
+  OR
+    -select se 1 even(MC)
+    AND
+      +se busy
+      -prev sel
+
++do sel
+  AND
+    -prev sel
+    ANDNOT
+      -select se 1 even(MC)
+      +se busy
+
+-prev se counter eq
+  NOT
+    +se counter eq
+
++se counter pulse
+  AND
+    +se counter eq
+    -prev se counter eq
+    +se busy
+
++se counter out[1]
+  XOR
+    +inc se counter
+    +se counter out[1]
+
++se counter out[0]
+  OR
+    AND
+      +inc se counter
+      XOR
+        +se counter out[0]
+        +se counter out[1]
+    AND
+      NOT
+        +inc se counter
+      +se counter out[0]
+
++se response seen
+  AND
+    +se busy
+    OR
+      +se counter pulse
+      +se response seen

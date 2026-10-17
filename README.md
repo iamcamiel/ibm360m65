@@ -1,3 +1,33 @@
+FPGA/host revision 1.39 corrects the KS121 STAA reset timing classification. The original 5D-5H/6F reset gates are combinational; CLOCK evaluation could lose zero-result status when an arithmetic shift changed ROS controls. Only -reset staa moves to NOCLOCK. Its Boolean equation, the clock-phase equations, two finite Boolean passes and SPECIAL scheduling are unchanged. The isolated R44 SRDA reproducer passes; this does not establish MVT completion, whole-CPU equivalence or routed timing. PCIe interface1.7 is unchanged. Hardware use requires a separately verified routed build and matching host.
+
+The same revision also retains a pending digital storage selection that arrives while the preceding transaction is busy; a previously accepted held-low selection still cannot repeat. This prevents a back-to-back STM request from being lost.
+
+Revision 1.38 features are retained: adds a 36-bit binary P0 edge counter on roller bar5 position6. It counts positive transitions of the same gated KM P0 signal observed by the diagnostic recorder, resets on panel Power Off/CPU reset, and holds during diagnostic halt. Counting continues while other positions are selected; the most significant bit is at the left. This confirms P0 activity, not completed instructions or microcode address progress. Only the physical roller output is overridden: CPU equations, internal scan data, native C++ and two-pass scheduling are unchanged. PCIe interface1.7 is unchanged. Hardware use requires a separately verified routed build and matching host.
+
+FPGA/host revision 1.37 adds configurable internal ROSAR breakpoints with hit counting and two explicit step modes (ROSAR change or next positive P0 edge) through PCIe interface1.7. Each event retains the existing before/event snapshots and timestamped 256-entry ROS history, with optional diagnostic halt; step completion always halts. The recorder starts disarmed with breakpoints disabled. CPU equations, native C++ and the finite two-pass schedule are unchanged. See docs/fpga-diagnostics.md for commands, boundary semantics and capture limits. Hardware use requires a separately verified routed build and matching host.
+
+FPGA/host revision 1.35 repairs the digital WA storage bridge. Selection edge
+history, response edge detection and the two-bit request sequence now update
+once per 100 MHz core edge. Busy spans selection through delayed completion;
+idle counter equality cannot create a phantom response. The bridge holds its key
+payload with address and marks, ignores stale key-valid responses, and requires a
+released selection before rearming. The generated native WA model and VHDL use
+the same source state equations. Other 47 CPU sections, their CLOCK equations,
+the finite two-pass schedule, global SPECIAL timing and interface 1.5 are unchanged.
+`tools/test_memory_bridge.py` checks generated native/VHDL transactions, all 32
+request flag combinations, sequence wraparound, delayed/stale replies, held
+payloads, odd data/key parity, halt and reset. These functional tests do not prove
+routed timing, productive PCIe stability or guest startup. A separate matching
+1.35 FPGA build and host are required before hardware deployment.
+
+FPGA/host revision 1.34 corrects held-input pulse expiry in ten VHDL single-shot primitives: NSSN525NS, NSSN1200NS, NSSN2800NS, NSSN3US, NSSN30MS, NSSN1000MS, NSSN2500MS, SSN5500US, SS300NS and DOUBLESS200NS. Each pulse keeps its nominal enabled-core-edge width, samples input edges without extending an active pulse, and expires independently of input release. SS300NS also asserts its positive output on the triggering edge. NSSN5500US already has this behavior and is unchanged. KW011 original ALDs and isolated full-CPU probes trace a stuck 3 us switch pulse through skipped local-store initialization to BF parity checking at B90 and STOR CHK at B91; correcting expiry restores initialization and the first I/O request. These probes use explicitly shortened private long reset timers and are not an exact replay of hardware internal history. Native C++ timers, all 48 ALD CLOCK equations, two Boolean passes, global SPECIAL scheduling and interface1.5 remain unchanged. Full CPU/SPECIAL/I/O equivalence, productive PCIe stability and guest startup remain unproved.
+
+FPGA/host revision 1.33 restores the original AR311 sampled edit parity adjustment input and its positive feedback inverter, and restores separate KT991 scan-parity/ENABLE SCAN products with positive ZERO SHIFT normal-parity qualification on AP475/AP555. R41 first asserted ROS69-99 checking during edit; its later MB scan-parity check followed already accepted SOROS. Prior repairs, all CLOCK equations, finite two-pass/global SPECIAL scheduling and interface1.5 remain. Original ALD tracing and isolated recorded module replay establish these sources; full CPU/SPECIAL/I/O or routed hardware timing equivalence and MVT completion remain unproved.
+
+FPGA/host revision 1.32 restores RT701 D BIT00 true/complement qualification in the two L0 PADDA bit7 products and separates positive ZERO SHIFT from scan bypass for normal SUM56-58 on AP561/AP571/AP581. R39 first accepted an AP half-sum check caused by injected bit7; its later scan byte E0/parity1 caused MB checking after SOROS acceptance. Exactly four NOCLOCK data assignments change; all headers and CLOCK equations, prior repairs, finite two-pass/global SPECIAL scheduling and interface1.5 retained. Private captured module replay establishes these sources but is not full historical CPU/SPECIAL/I/O or hardware/routed timing proof.
+
+FPGA/host revision 1.31 preserves the AS201 +CLOCK P2 D / -CLOCK P3 G complement at each core edge. The extra sampled inverter edge upset AS075 parity while NI changed 82 to 80, held the CPU clock and exposed a premature comparison boundary before BAL executed. Exactly one AS CLOCK assignment changes; NOCLOCK equations, all headers, other CLOCK equations and prior repairs remain unchanged. Private recorded AS replay and native NI/BAL reproduce the source; no exact corrected full historical replay or complete hardware/routed timing proof. Interface1.5 and finite two-pass/global SPECIAL scheduling retained.
+
 FPGA/host revision 1.30 corrects DP091 to detect even MPR data-plus-parity, restores MA241 scan parity for the zero upper SAB byte, and isolates AP591 bit59 normal sum from scan bypass. These defects are traced through original ALDs and recorded r37 windows. The AP591 change is limited to bit59; remaining AP scan omissions are not included. Prior repairs, zero PSBAR in plain360/65, interface1.5, all CLOCK equations and finite two-pass/global SPECIAL scheduling are retained. Functional tests do not establish MVT completion, complete hardware equivalence or routed timing.
 
 FPGA/host revision 1.29 restores AP321 positive scan bit32. In the r36 scan window, its omission changes byte FF to 7F before a later MB parity check; SOROS was already accepted from BF. At the user request, the FAA-only PSBAR absent on a plain 360/65 now reads zero data with normal odd parity F through the DR171/BF701 source gate. H2 writes leave the absent register zero. This is a 360/65 adaptation, not full FAA PSBAR emulation. Rejected LS parity output masking and exploratory scan-parity changes remain uninstalled. Revision 1.28 and earlier repairs, interface 1.5, finite two-pass/global SPECIAL scheduling and overlapping clocks are retained. Functional tests do not establish MVT completion or full hardware equivalence.
@@ -425,10 +455,15 @@ Then run `python tools/validate_mvt_compare.py --run-dir gen/mvt-ald-next
 --checkpoint gen/mvt-tso-final --backend http://127.0.0.1:8193
 --primary http://127.0.0.1:8192 --tso http://127.0.0.1:8194
 --console-port 3295 --tso-web-port 8194`. The controller answers NIP, retains the clean
-job queue, starts HASP with NOREQ, attaches the official TSO client, starts
+job queue, enables `MN JOBNAMES,T` and `MN STATUS` before starting HASP with
+NOREQ, attaches the official TSO client, starts
 TCAM/TSO, logs on as CAMIEL, runs LISTCAT, and submits CHECK.CNTL. Each reply
 waits for a fresh settled model wait; full-console deletion needs separate
-waits too. The first mismatch pauses execution and retains the evidence.
+waits too. Job-start messages such as `IEF403I TCAM STARTED` depend on
+`MONITOR JOBNAMES`; waiting for them without enabling monitoring can leave
+the controller at phase 6 while TCAM is already running. Each monitoring
+command also requires its own fresh settled wait. The first mismatch pauses
+execution and retains the evidence.
 The initial storage clear is slow because every microcycle runs the generated
 ALD logic. Do not send competing commands while the controller is active.
 Progress-file replacement retries temporary Windows file locks. Failure handling

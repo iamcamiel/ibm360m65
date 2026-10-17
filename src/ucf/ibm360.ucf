@@ -230,3 +230,13 @@ TIMESPEC "TS_MGTCLK"  = PERIOD "MGTCLK" 100.00 MHz HIGH 50 % ;
 ###############################################################################
 # End
 ###############################################################################
+
+# Coherent diagnostic bus held until acknowledged; both clocks remain timed.
+INST "pcie/app/PIO_interface/PIO_EP_ins/EP_MEM/EP_MEM_inst/diagnostic_requests/source_hold*" TNM = "CDC_DREQ_HOLD";
+INST "pcie/app/PIO_interface/PIO_EP_ins/EP_MEM/EP_MEM_inst/diagnostic_requests/destination_data*" TNM = "CDC_DREQ_CAPTURE";
+TIMESPEC "TS_CDC_DREQ_DATA" = FROM "CDC_DREQ_HOLD" TO "CDC_DREQ_CAPTURE" 8 ns DATAPATHONLY;
+
+# Coherent diagnostic bus held until acknowledged; both clocks remain timed.
+INST "pcie/app/PIO_interface/PIO_EP_ins/EP_MEM/EP_MEM_inst/diagnostic_responses/source_hold*" TNM = "CDC_DRESP_HOLD";
+INST "pcie/app/PIO_interface/PIO_EP_ins/EP_MEM/EP_MEM_inst/diagnostic_responses/destination_data*" TNM = "CDC_DRESP_CAPTURE";
+TIMESPEC "TS_CDC_DRESP_DATA" = FROM "CDC_DRESP_HOLD" TO "CDC_DRESP_CAPTURE" 8 ns DATAPATHONLY;

@@ -413,9 +413,23 @@ CLOCK
     -reset ros m field(KU)
 NOCLOCK
 
+; AR311 BC/BD -> BE negative PAR ADJ -> BF positive feedback.
+; ODD AX D04 consumes the sampled negative PAR ADJ, not combinational edit control.
+-edit parity adjust lth
+  NOR
+    AND
+      +edit parity adjust
+      +clock p2 forced O not ros ck
+    AND
+      -clock p1 O not ros ck
+      +edit parity adjust lth
++edit parity adjust lth
+  NOT
+    -edit parity adjust lth
 +rosdr bits 69-73 odd
   XOR
     +reg decode bit[69..73]
+    -edit parity adjust lth
 
 +reset ascOexc on branch
   ANDNOT

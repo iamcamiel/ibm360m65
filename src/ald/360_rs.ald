@@ -686,10 +686,15 @@ SECTION RS_RT
         -gt ones--padda 04-06 c-l0
         -gt ones--padda 04-06 c-l1
 
+; RT701 L0 products require D BIT00 true/complement, as do L1 products.
 -d padda bus ov[7]
   NOR
-    +gt d padda 08-31 t-l0
-    +gt d padda 08-31 c-l0
+    AND
+      +d bit[0](RD)
+      +gt d padda 08-31 t-l0
+    AND
+      -d bit[0](RD)
+      +gt d padda 08-31 c-l0
     AND
       +d bit[0](RD)
       +gt d padda 07-30 t-l1

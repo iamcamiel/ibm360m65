@@ -35,6 +35,8 @@ entity EP_MEM is port (
   
     panel_snapshot_i : in std_logic_vector(735 downto 0) := (others => '0');
     panel_valid_i : in std_logic := '0';
+    diagnostic_state_i : in std_logic_vector(1023 downto 0) := (others=>'0');
+    diagnostic_halt_o : out std_logic := '0';
     P_reg_io_int : buffer STD_LOGIC_VECTOR (31 downto 0);
     P_reg_io_resp : buffer STD_LOGIC_VECTOR (31 downto 0);
     P_reg_se_rdata_hi : buffer STD_LOGIC_VECTOR (31 downto 0);
@@ -74,6 +76,31 @@ architecture rtl of EP_MEM is
   signal pci_se_resp : std_logic_vector(31 downto 0) := (others => '0');
   signal pci_se_size : std_logic_vector(31 downto 0) := (others => '0');
   signal panel_latest, panel_view : std_logic_vector(735 downto 0) := (others => '0');
+  -- Diagnostic commands have their own coherent round trip; captures never
+  -- enter the normal CPU memory/I/O mailbox or stall it.
+  signal diagnostic_command, diagnostic_command_core : std_logic_vector(63 downto 0) := (others=>'0');
+  signal diagnostic_reply, diagnostic_reply_pci : std_logic_vector(63 downto 0) := (others=>'0');
+  signal diagnostic_send, diagnostic_pending, diagnostic_reply_pending : std_logic := '0';
+  signal diagnostic_ready, diagnostic_valid, diagnostic_reply_ready, diagnostic_reply_valid : std_logic;
+  signal diagnostic_result : std_logic_vector(31 downto 0);
+  signal diagnostic_result_valid : std_logic;
+  signal diagnostic_sequence, diagnostic_completed : unsigned(31 downto 0) := (others=>'0');
+  signal diagnostic_data : std_logic_vector(31 downto 0) := (others=>'0');
+  function diagnostic_word(address : std_logic_vector(8 downto 0);
+    sequence_number, completed : unsigned(31 downto 0);
+    data : std_logic_vector(31 downto 0); pending : std_logic) return std_logic_vector is
+    variable r : std_logic_vector(31 downto 0) := (others=>'0');
+  begin
+    case to_integer(unsigned(address)) is
+      when 384 => r:=x"44424731"; -- DBG1, byte offset0x600
+      when 385 => r:=std_logic_vector(sequence_number);
+      when 386 => r:=std_logic_vector(completed);
+      when 387 => r:=data;
+      when 388 => r(0):=pending;
+      when others => null;
+    end case;
+    return r;
+  end;
   signal snapshot_ext : std_logic_vector(31 downto 0);
   signal snapshot_io_cmd : std_logic_vector(31 downto 0);
   signal snapshot_se_addr : std_logic_vector(31 downto 0);
@@ -94,6 +121,38 @@ begin
   begin
     if cdc_reset_i = '1' then cpu_reset <= "11";
     elsif rising_edge(core_clk_i) then cpu_reset <= cpu_reset(0) & '0';
+    end if;
+  end process;
+
+  diagnostic_requests : entity work.CDC_MAILBOX generic map(WIDTH=>64)
+    port map(source_clk_i=>clk_i, destination_clk_i=>core_clk_i, reset_i=>cdc_reset_i,
+      source_data_i=>diagnostic_command, source_valid_i=>diagnostic_send,
+      source_ready_o=>diagnostic_ready, destination_data_o=>diagnostic_command_core,
+      destination_valid_o=>diagnostic_valid);
+  diagnostics : entity work.CPU_DIAGNOSTICS
+    port map(clk_i=>core_clk_i, reset_i=>cpu_reset(1), state_i=>diagnostic_state_i,
+      command_i=>diagnostic_command_core(31 downto 0), command_valid_i=>diagnostic_valid,
+      response_o=>diagnostic_result, response_valid_o=>diagnostic_result_valid,
+      halt_o=>diagnostic_halt_o);
+  diagnostic_responses : entity work.CDC_MAILBOX generic map(WIDTH=>64)
+    port map(source_clk_i=>core_clk_i, destination_clk_i=>clk_i, reset_i=>cdc_reset_i,
+      source_data_i=>diagnostic_reply, source_valid_i=>diagnostic_reply_pending,
+      source_ready_o=>diagnostic_reply_ready, destination_data_o=>diagnostic_reply_pci,
+      destination_valid_o=>diagnostic_reply_valid);
+  process(core_clk_i)
+  begin
+    if rising_edge(core_clk_i) then
+      if cpu_reset(1)='1' then
+        diagnostic_reply_pending<='0'; diagnostic_reply<=(others=>'0');
+      else
+        if diagnostic_reply_pending='1' and diagnostic_reply_ready='1' then
+          diagnostic_reply_pending<='0';
+        end if;
+        if diagnostic_result_valid='1' then
+          diagnostic_reply<=diagnostic_command_core(63 downto 32) & diagnostic_result;
+          diagnostic_reply_pending<='1';
+        end if;
+      end if;
     end if;
   end process;
 
@@ -141,7 +200,7 @@ begin
   -- PIO_EP_MEM_ACCESS also includes its write_en edge in wr_busy_o.
   -- user_reset and mailbox readiness already assert asynchronously and
   -- release locally. Raw cdc_reset_i must not feed PCIe synchronous control.
-  cdc_busy_o <= response_pending or not response_ready or user_reset(1);
+  cdc_busy_o <= response_pending or not response_ready or user_reset(1) or diagnostic_pending;
   snapshot_ext <= command_snapshot(191 downto 160);
   snapshot_io_cmd <= command_snapshot(159 downto 128);
   snapshot_se_addr <= command_snapshot(127 downto 96);
@@ -172,6 +231,9 @@ begin
 	begin
         if cdc_reset_i = '1' then
             response_pending <= '0'; panel_view <= (others => '0');
+            diagnostic_send<='0'; diagnostic_pending<='0';
+            diagnostic_sequence<=(others=>'0'); diagnostic_completed<=(others=>'0');
+            diagnostic_command<=(others=>'0'); diagnostic_data<=(others=>'0');
             a_rd_d_o_0 <= (others => '0'); b_rd_d_o_0 <= (others => '0');
             pci_io_int <= (others => '0');
             pci_io_resp <= (others => '0');
@@ -182,6 +244,9 @@ begin
         elsif rising_edge(clk_i) then
           if user_reset(1) = '1' then
             response_pending <= '0'; panel_view <= (others => '0');
+            diagnostic_send<='0'; diagnostic_pending<='0';
+            diagnostic_sequence<=(others=>'0'); diagnostic_completed<=(others=>'0');
+            diagnostic_command<=(others=>'0'); diagnostic_data<=(others=>'0');
             pci_io_int <= (others => '0');
             pci_io_resp <= (others => '0');
             pci_se_rdata_hi <= (others => '0');
@@ -189,6 +254,11 @@ begin
             pci_se_resp <= (others => '0');
             pci_se_size <= (others => '0');
           else
+            if diagnostic_send='1' and diagnostic_ready='1' then diagnostic_send<='0'; end if;
+            if diagnostic_reply_valid='1' then
+              diagnostic_completed<=unsigned(diagnostic_reply_pci(63 downto 32));
+              diagnostic_data<=diagnostic_reply_pci(31 downto 0); diagnostic_pending<='0';
+            end if;
             if response_pending = '1' and response_ready = '1' then
               response_pending <= '0';
             end if;
@@ -212,6 +282,7 @@ begin
 				when "000001100" => a_rd_d_o_0 <= snapshot_se_wdata_lo;
 				when "100000000" => a_rd_d_o_0 <= x"504E4C31"; -- PNL1
 				when "100000001" | "100000010" | "100000011" | "100000100" | "100000101" | "100000110" | "100000111" | "100001000" | "100001001" | "100001010" | "100001011" | "100001100" | "100001101" | "100001110" | "100001111" | "100010000" | "100010001" | "100010010" | "100010011" | "100010100" | "100010101" | "100010110" | "100010111" => a_rd_d_o_0 <= panel_view((to_integer(unsigned(a_rd_a_i_0))-256)*32-1 downto (to_integer(unsigned(a_rd_a_i_0))-257)*32);
+				when "110000000" | "110000001" | "110000010" | "110000011" | "110000100" => a_rd_d_o_0 <= diagnostic_word(a_rd_a_i_0,diagnostic_sequence,diagnostic_completed,diagnostic_data,diagnostic_pending);
 				when "111111011" => a_rd_d_o_0 <= M65_BUILD_MAGIC; -- BAR0 0x7EC
 				when "111111100" => a_rd_d_o_0 <= M65_BUILD_TIME; -- BAR0 0x7F0
 				when "111111101" => a_rd_d_o_0 <= M65_BUILD_DATE; -- BAR0 0x7F4
@@ -234,6 +305,7 @@ begin
 				when "000001100" => b_rd_d_o_0 <= snapshot_se_wdata_lo;
 				when "100000000" => b_rd_d_o_0 <= x"504E4C31"; -- PNL1
 				when "100000001" | "100000010" | "100000011" | "100000100" | "100000101" | "100000110" | "100000111" | "100001000" | "100001001" | "100001010" | "100001011" | "100001100" | "100001101" | "100001110" | "100001111" | "100010000" | "100010001" | "100010010" | "100010011" | "100010100" | "100010101" | "100010110" | "100010111" => b_rd_d_o_0 <= panel_view((to_integer(unsigned(b_wr_a_i_0))-256)*32-1 downto (to_integer(unsigned(b_wr_a_i_0))-257)*32);
+				when "110000000" | "110000001" | "110000010" | "110000011" | "110000100" => b_rd_d_o_0 <= (others=>'0'); -- command writes require a complete DWORD
 				when "111111011" => b_rd_d_o_0 <= M65_BUILD_MAGIC;
 				when "111111100" => b_rd_d_o_0 <= M65_BUILD_TIME;
 				when "111111101" => b_rd_d_o_0 <= M65_BUILD_DATE;
@@ -252,6 +324,15 @@ begin
 					when "000001000" => pci_se_resp <= b_wr_d_i_0; response_pending <= '1';
 					when "000001001" => pci_se_rdata_hi <= b_wr_d_i_0; response_pending <= '1';
 					when "000001010" => pci_se_rdata_lo <= b_wr_d_i_0; response_pending <= '1';
+                    when "110000000" =>
+                      -- Guard control writes with0xA opcode prefix. Normal reads
+                      -- of magic/status/data never execute a diagnostic command.
+                      if b_wr_d_i_0(31 downto 28)=x"A" and diagnostic_pending='0' then
+                        diagnostic_sequence<=diagnostic_sequence+1;
+                        diagnostic_command<=std_logic_vector(diagnostic_sequence+1) &
+                          ("0000" & b_wr_d_i_0(27 downto 0));
+                        diagnostic_send<='1'; diagnostic_pending<='1';
+                      end if;
 					when others => null;
 				end case;
 			end if;

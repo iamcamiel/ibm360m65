@@ -110,7 +110,7 @@ static void sigint_handler (int signo)
 } /* end function sigint_handler */
 
 
-#if !defined(NO_SIGABEND_HANDLER)
+#if !defined(NO_SIGABEND_HANDLER) && !defined(HARDWARE_M65)
 static void *watchdog_thread(void *arg)
 {
 S64 savecount[MAX_CPU_ENGINES];
@@ -492,7 +492,7 @@ TID     logcbtid;                       /* RC file thread identifier */
     prev_int_start_time = curr_int_start_time;
 #endif
 
-#if !defined(NO_SIGABEND_HANDLER)
+#if !defined(NO_SIGABEND_HANDLER) && !defined(HARDWARE_M65)
     /* Start the watchdog */
     if ( create_thread (&sysblk.wdtid, DETACHED,
                         watchdog_thread, NULL, "watchdog_thread") )

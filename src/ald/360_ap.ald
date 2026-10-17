@@ -386,26 +386,47 @@ NOCLOCK
     AND
       +clock p2 extended
       +paddl[32]
--latched sum[33..58]
+-latched sum[33..55]
   NOR
     AND
-      +scan out bus bit[33..58](KT)
+      +scan out bus bit[33..55](KT)
       +enable scan bypass
     AND
-      +sum[33..58]
+      +sum[33..55]
       +zero shift or enable scan
       -clock p3 extended
     AND
-      +sum[37..62]
+      +sum[37..59]
       +left 4 shift
       -clock p3 extended
     AND
-      +sum[29..54]
+      +sum[29..51]
       +right 4 shift
       -clock p3 extended
     AND
       +clock p2 extended
-      +paddl[33..58]
+      +paddl[33..55]
+; AP561/AP571/AP581: positive ZERO SHIFT gates normal SUM separately from scan.
+-latched sum[56..58]
+  NOR
+    AND
+      +scan out bus bit[56..58](KT)
+      +enable scan bypass
+    AND
+      +sum[56..58]
+      +zero shift
+      -clock p3 extended
+    AND
+      +sum[60..62]
+      +left 4 shift
+      -clock p3 extended
+    AND
+      +sum[52..54]
+      +right 4 shift
+      -clock p3 extended
+    AND
+      +clock p2 extended
+      +paddl[56..58]
 ; AP591: normal sum59 is qualified by ZERO SHIFT, separately from scan bypass.
 -latched sum[59]
   NOR
@@ -1959,6 +1980,9 @@ NOCLOCK
   NOT
     -temp
       NOR
+        AND
+          +scan out bus p40-47 to paddl(KT)
+          +enable scan bypass
         -clock p3 extendedOshift r1
         AND
           +right 4 shift
@@ -1971,12 +1995,12 @@ NOCLOCK
           +bits 36-39 odd
           +bits 40-43 odd
         AND
-          +zero shift or enable scan
+          +zero shift
           -clock p3 extended
           -bits 40-43 odd
           -bits 44-47 odd
         AND
-          +zero shift or enable scan
+          +zero shift
           -clock p3 extended
           +bits 40-43 odd
           +bits 44-47 odd
@@ -2272,6 +2296,9 @@ NOCLOCK
   NOT
     -temp
       NOR
+        AND
+          +scan out bus p48-55 to paddl(KT)
+          +enable scan bypass
         -clock p3 extendedOshift r1
         AND
           +right 4 shift
@@ -2284,12 +2311,12 @@ NOCLOCK
           +bits 44-47 odd
           +bits 48-51 odd
         AND
-          +zero shift or enable scan
+          +zero shift
           -clock p3 extended
           -bits 48-51 odd
           -bits 52-55 odd
         AND
-          +zero shift or enable scan
+          +zero shift
           -clock p3 extended
           +bits 48-51 odd
           +bits 52-55 odd

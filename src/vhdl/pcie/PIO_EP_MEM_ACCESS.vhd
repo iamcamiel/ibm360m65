@@ -39,6 +39,8 @@ entity PIO_EP_MEM_ACCESS is port (
     core_clk_i, cdc_reset_i : in std_logic;
     panel_snapshot_i : in std_logic_vector(735 downto 0) := (others => '0');
     panel_valid_i : in std_logic := '0';
+    diagnostic_state_i : in std_logic_vector(1023 downto 0) := (others=>'0');
+    diagnostic_halt_o : out std_logic := '0';
     P_reg_io_int : buffer STD_LOGIC_VECTOR (31 downto 0);
     P_reg_io_resp : buffer STD_LOGIC_VECTOR (31 downto 0);
     P_reg_se_rdata_hi : buffer STD_LOGIC_VECTOR (31 downto 0);
@@ -260,6 +262,7 @@ EP_MEM_inst : entity work.EP_MEM port map (
                   
     core_clk_i => core_clk_i, cdc_reset_i => cdc_reset_i,
     panel_snapshot_i => panel_snapshot_i, panel_valid_i => panel_valid_i,
+    diagnostic_state_i => diagnostic_state_i, diagnostic_halt_o => diagnostic_halt_o,
     P_reg_io_int => P_reg_io_int,
 	 P_reg_io_resp => P_reg_io_resp,
     P_reg_se_rdata_hi => P_reg_se_rdata_hi,

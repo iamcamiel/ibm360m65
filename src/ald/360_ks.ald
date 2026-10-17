@@ -391,6 +391,10 @@ CLOCK
         +temp
           NOT
             -e bit[6](RE)
+; KS121 5D-5H -> 6F is a combinational reset cone, not sampled state.
+; Release with the current phase/ROS controls before evaluating STAA hold.
+NOCLOCK
+
 -reset staa
   NOR
     AND
@@ -409,8 +413,6 @@ CLOCK
       +stat clock p0
       +set staa if sal00-07 not eq 0(DR)
       -temp staa lth
-
-NOCLOCK
 
 +staa lth
   ANDNOT

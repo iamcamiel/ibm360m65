@@ -119,6 +119,8 @@ class ComparisonStartupTests(unittest.TestCase):
             ('IEA135A SPECIFY SYS1.DUMP TAPE UNIT ADDRESS OR NO', ''),
             ('IEE101A READY', ''),
             ('', 'IEE351I SMF SYS1.MAN RECORDING NOT BEING USED'),
+            ('', 'IEE351I SMF SYS1.MAN RECORDING NOT BEING USED'),
+            ('', 'IEE351I SMF SYS1.MAN RECORDING NOT BEING USED'),
             ('00 | *00 $ SPECIFY HASP OPTIONS -- HASP-II VERSION 4.009762', ''),
             ('', 'ALL AVAILABLE FUNCTIONS COMPLETE'),
             ('', 'IEF403I TCAM     STARTED'),
@@ -141,11 +143,42 @@ class ComparisonStartupTests(unittest.TestCase):
         actions = [call.args[2] for call in request.call_args_list]
         self.assertEqual(actions, [
             {'text': ''}, {'text': "R 00,'NO'"}, {'text': 'T DATE=75.279'},
+            {'text': 'MN JOBNAMES,T'}, {'text': 'MN STATUS'},
             {'text': 'S HASP'}, {'text': 'R 00,NOREQ'}, {'text': 'S TCAM'},
             {'text': 'S TSO'}, {'key': 'clear'}, {'text': 'LOGON CAMIEL'},
             {'text': 'LISTCAT'}, {'text': 'SUBMIT CHECK.CNTL'}])
         self.assertTrue(self.validation.result['complete'])
         self.assertEqual(self.validation.result['test_job_condition_codes'], ['0000'])
+
+    @patch('validate_mvt_compare.http')
+    def test_monitoring_precedes_job_start_and_requires_separate_waits(self, request):
+        self.validation.phase = 3
+        screen = {'console': 'IEE351I SMF SYS1.MAN RECORDING NOT BEING USED'}
+        expected = ['MN JOBNAMES,T', 'MN STATUS', 'S HASP']
+        for index, command in enumerate(expected):
+            self.validation.step(self.model, screen, '')
+            self.assertEqual(request.call_count, index)
+            self.wait()
+            self.validation.step(self.model, screen, '')
+            self.assertEqual(request.call_count, index + 1)
+            self.assertEqual(request.call_args.args,
+                             ('primary', '/input', {'text': command}))
+        self.assertEqual(self.validation.phase, 4)
+        self.assertEqual(self.validation.result['startup_monitor_commands_sent'],
+                         expected[:2])
+
+    @patch('validate_mvt_compare.http')
+    def test_missing_tcam_started_message_does_not_send_tso(self, request):
+        self.validation.phase = 6
+        self.wait()
+        self.validation.step(self.model, {'console': 'S TCAM'}, '')
+        request.assert_not_called()
+        self.validation.step(self.model, {'console': 'S TCAM'},
+                             'IEF403I TCAM     STARTED TIME=00.00.00')
+        request.assert_called_once_with('primary', '/input', {'text': 'S TSO'})
+        self.validation.step(self.model, {'console': 'S TCAM'},
+                             'IEF403I TCAM     STARTED TIME=00.00.00')
+        self.assertEqual(request.call_count, 1)
 
     @patch('validate_mvt_compare.http')
     def test_manual_pause_prevents_new_operator_commands(self, request):

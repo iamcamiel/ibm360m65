@@ -303,7 +303,7 @@ int ARCH_DEP(common_load_finish) (REGS *regs)
         HDC1(debug_cpu_state, regs);
         return -1;
     }
-#if defined(COMPARE_M65) || defined(SOFTWARE_M65)
+#if defined(COMPARE_M65) || defined(SOFTWARE_M65) || defined(HARDWARE_M65)
     write_m65_reg(M65_REG_IO_RESP, current_io_num);
 //    run_single_instruction(regs);
 #endif

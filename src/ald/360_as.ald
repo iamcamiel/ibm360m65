@@ -1092,9 +1092,12 @@ CLOCK
 +clock p4
   NOT
     -clock p3
+; AS201 P2 D and negative P3 G share one distribution node.
+; Keep complementary CLOCK outputs on the same sampled source; NOT of the
+; separately registered P2 adds an artificial 10ns edge and breaks AS075 hold.
 -clock p3
-  NOT
-    +clock p2
+  OR
+    -clock p1
 +clock p2
   NOT
     -clock p1
