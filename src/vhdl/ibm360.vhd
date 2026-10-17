@@ -47,14 +47,19 @@ end IBM360;
 
 architecture Behavioral of IBM360 is
 	signal clk : STD_LOGIC;
-	signal dclk : STD_LOGIC;
-	signal hclk : STD_LOGIC;
-	-- Replicate the existing 10 ns enable register rather than adding a
-	-- pipeline stage, which would shift every enabled ALD update by 5 ns.
-	attribute max_fanout : integer;
-	attribute max_fanout of hclk : signal is 64;
+	signal clk200 : STD_LOGIC;
+	signal core_ready : STD_LOGIC;
+	signal panel_rst : STD_LOGIC;
+	signal sys_reset_n_c : STD_LOGIC;
+  signal core_clock_reset : std_logic;
+	signal display_enable, display_reset : STD_LOGIC;
+  signal panel_snapshot : std_logic_vector(735 downto 0);
+  signal panel_valid : std_logic;
+	signal pcie_reset_status, pcie_link_status : STD_LOGIC;
+	signal pcie_status_meta, pcie_status_sync : STD_LOGIC_VECTOR(1 downto 0) := "00";
 	signal rst : STD_LOGIC;
-	signal hlt : STD_LOGIC;
+	signal hlt : STD_LOGIC := '0';
+  signal diagnostic_state : std_logic_vector(1023 downto 0);
 	
 	signal sw0 : STD_LOGIC_VECTOR(0 to 23);
 	signal sw1 : STD_LOGIC_VECTOR(0 to 23);
@@ -69,10 +74,12 @@ architecture Behavioral of IBM360 is
 	signal li2 : STD_LOGIC_VECTOR(0 to 39);
 	signal li3 : STD_LOGIC_VECTOR(0 to 39);
 	signal li4 : STD_LOGIC_VECTOR(0 to 39);
+  signal li4_cpu : STD_LOGIC_VECTOR(0 to 39);
+  signal show_p0_count : std_logic;
 	signal li5 : STD_LOGIC_VECTOR(0 to 39);
 	signal clock_ctr : integer range 0 to 833333;
-	signal d_ctr : integer range 0 to 511;
-	signal l_ctr : integer range 0 to 20000000;
+	signal d_ctr : integer range 0 to 511 := 255;
+	signal l_ctr : integer range 0 to 10000000;
 	signal p60 : STD_LOGIC := '0';
 	signal por : STD_LOGIC := '1';
 
@@ -91,21 +98,38 @@ architecture Behavioral of IBM360 is
 	signal l_4 : STD_LOGIC_VECTOR(0 to 3) := "1000";
 	signal l_10: STD_LOGIC_VECTOR(0 to 9) := "0000000000";
 	signal l_10_d : STD_LOGIC := '0';
+  attribute ASYNC_REG : string;
+  attribute SHREG_EXTRACT : string;
+  attribute ASYNC_REG of pcie_status_meta, pcie_status_sync : signal is "TRUE";
+  attribute SHREG_EXTRACT of pcie_status_meta, pcie_status_sync : signal is "NO";
 begin
+  diagnostic_state(799 downto 768) <= P_reg_se_cmd;
+  diagnostic_state(831 downto 800) <= P_reg_se_addr;
+  diagnostic_state(863 downto 832) <= P_reg_se_wdata_hi;
+  diagnostic_state(895 downto 864) <= P_reg_se_wdata_lo;
+  diagnostic_state(927 downto 896) <= P_reg_io_cmd;
+  diagnostic_state(959 downto 928) <= P_reg_ext;
+  diagnostic_state(991 downto 960) <= P_reg_se_size;
+  diagnostic_state(1023 downto 992) <= (31 downto 2 => '0') & core_ready & rst;
+  display_reset <= not core_ready;
+  display_enable <= '1' when d_ctr = 511 and core_ready = '1' else '0';
+  l_10(0) <= pcie_status_sync(0);
+  l_10(1) <= pcie_status_sync(1);
   process (clk)
   begin
     if (clk'event and clk = '1') then
 		  led_4 <= l_4;
 		  led_10 <= (not l_10(0)) & l_10(1 to 9);
 
-	   if (d_ctr = 511) then
-		  dclk <= not dclk;
+	   if core_ready = '0' then
+          d_ctr <= 255;
+        elsif (d_ctr = 511) then
 		  d_ctr <= 0;
 		else
 		  d_ctr <= d_ctr + 1;
 		end if;
 		
-		if (l_ctr = 20000000) then
+		if (l_ctr = 10000000) then
 		  l_4 <= l_4(3) & l_4(0 to 2);
 	     l_ctr <= 0;
 		else
@@ -116,27 +140,35 @@ begin
 		  clock_ctr <= 0;
 		  p60 <= '0';
 		  por <= '1';
-		else
-			hclk <= not hclk;
-			if (hclk = '1') then
-			  if(clock_ctr = 833333) then
-				 clock_ctr <= 1;
-				 p60 <= not p60;
-			  else
-				 clock_ctr <= clock_ctr + 1;
-			  end if;
-			  if (p60 = '1') then
-			    por <= '0';
-			  end if;
-			end if;		
+		elsif hlt = '0' then
+            -- One ALD update per 10 ns core edge; P60 retains its 60 Hz rate.
+            if (clock_ctr = 833333) then
+                clock_ctr <= 1;
+                p60 <= not p60;
+            else
+                clock_ctr <= clock_ctr + 1;
+            end if;
+            if (p60 = '1') then
+                por <= '0';
+            end if;
 		end if;
 	 end if;
   end process;
-  
-  
-  ald : entity ALD port map (
+
+  -- PCIe status used only for indicators; synchronize before CPU-clock sampling.
+  process(clk, core_ready)
+  begin
+    if core_ready = '0' then
+      pcie_status_meta <= "00"; pcie_status_sync <= "00";
+    elsif rising_edge(clk) then
+      pcie_status_meta <= pcie_link_status & pcie_reset_status;
+      pcie_status_sync <= pcie_status_meta;
+    end if;
+  end process;
+
+  ald : entity work.ALD port map (
+    diagnostic_state_o => diagnostic_state(767 downto 0),
     clk => clk,
-	 hclk => hclk,
 	 rst => rst,
 	 hlt => hlt,
 	 P_P60_cycles_from_transformer => p60,
@@ -159,7 +191,7 @@ begin
     P_lamps_1 => li1,
     P_lamps_2 => li2,
     P_lamps_3 => li3,
-    P_lamps_4 => li4,
+	 P_lamps_4 => li4_cpu,
     P_lamps_5 => li5,
 
 	 P_reg_ext => P_reg_ext,
@@ -170,8 +202,17 @@ begin
 	 P_reg_se_wdata_lo => P_reg_se_wdata_lo
   );
   
-  blinken : entity BLINKEN port map (
-    clk => dclk,
+  -- Physical roller5 position6 has no selected contact (PK001 B4.17..21).
+  -- Override outgoing lamps only; internal KT scan data stays ALD-owned.
+  show_p0_count <= '1' when sw4(17 to 21) = "11111" else '0';
+  p0_count_display : entity work.P0_PANEL_COUNTER
+    generic map (COUNT_BITS => 36)
+    port map (clk_i => clk, reset_i => rst, halt_i => hlt,
+      p0_i => diagnostic_state(20), select_i => show_p0_count,
+      normal_lamps_i => li4_cpu, lamps_o => li4);
+
+  blinken : entity work.BLINKEN port map (
+    clk => clk, rst_i => display_reset, enable_i => display_enable,
 	 
 	 disp_clk_o => disp_clk_o,
 	 disp_latch_n_o => disp_latch_n_o,
@@ -196,10 +237,14 @@ begin
 	 
 	 configured => P_reg_se_size(0),
 	 
-	 power_off => rst
+    panel_snapshot_o => panel_snapshot, panel_valid_o => panel_valid,
+	 power_off => panel_rst
   );
   
-  pcie : entity XILINX_PCI_EXP_EP port map (
+  pcie : entity work.XILINX_PCI_EXP_EP port map (
+    core_clk_i => clk, core_ready_i => core_ready,
+    panel_snapshot_i => panel_snapshot, panel_valid_i => panel_valid,
+    diagnostic_state_i => diagnostic_state, diagnostic_halt_o => hlt,
 		pci_exp_txp(0) => pci_exp_txp,
 		pci_exp_txn(0) => pci_exp_txn,
 		pci_exp_rxp(0) => pci_exp_rxp,
@@ -207,6 +252,7 @@ begin
 		sys_clk_p => sys_clk_p,
 		sys_clk_n => sys_clk_n,
 		sys_reset_n => sys_reset_n,
+		sys_reset_n_buf_o => sys_reset_n_c,
 		
     P_reg_io_int => P_reg_io_int,
 	 P_reg_io_resp => P_reg_io_resp,
@@ -222,15 +268,22 @@ begin
 	 P_reg_se_wdata_hi => P_reg_se_wdata_hi,
 	 P_reg_se_wdata_lo => P_reg_se_wdata_lo,
 
-	 trn_reset_n => l_10(0),
-	 trn_lnk_up_n => l_10(1)
+	 trn_reset_n => pcie_reset_status,
+	 trn_lnk_up_n => pcie_link_status
   );
 
 	fpgaclk_ibuf: ibufds port map (
-		 o => clk,
+		 o => clk200,
 		 i => clk_fpga_p,
 		 ib => clk_fpga_n
 	);
+
+  core_clock_reset <= not sys_reset_n_c;
+  core_clock : entity work.CORE_CLOCK100 port map (
+    clk200_i => clk200, reset_i => core_clock_reset,
+    clk100_o => clk, ready_o => core_ready
+  );
+  rst <= panel_rst or not core_ready;
 
   l_10(2) <= P_reg_se_size(0);	-- host configures
   l_10(3) <= not rst;				-- power on

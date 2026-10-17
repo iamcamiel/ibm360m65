@@ -1,0 +1,2 @@
+vhdl work "../src/vhdl/blinken.vhd"
+vhdl work "test_display_clock.vhd"

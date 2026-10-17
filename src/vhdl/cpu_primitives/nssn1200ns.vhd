@@ -14,50 +14,38 @@
 -- * You should have received a copy of the GNU General Public License
 -- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-library IEEE;
-use IEEE.STD_LOGIC_1164.ALL;
-use IEEE.NUMERIC_STD.ALL;
-USE ieee.std_logic_arith.all;
+library ieee;
+use ieee.std_logic_1164.all;
 
-
+-- Non-retriggerable one-shot; one enabled core edge is 10 ns.
+-- Input edges during a pulse do not extend it. Held input does not hold output.
 entity NSSN1200NS is
-    Port ( clk : in  STD_LOGIC;
-			  hclk : in STD_LOGIC;
-			  rst : in STD_LOGIC;
-			  hlt : in STD_LOGIC;
-		     i : in STD_LOGIC;
-			  o : buffer STD_LOGIC
-           );
+  port (clk, rst, hlt, i : in std_logic; o : buffer std_logic);
 end NSSN1200NS;
 
 architecture Behavioral of NSSN1200NS is
-    signal cnt : integer range 0 to 119 := 0;
-	 signal triggered : STD_LOGIC := '0';
+  signal remaining : integer range 0 to 119 := 0;
+  signal previous_input : std_logic := '1';
 begin
-	process (clk)
-	begin
-		if (clk'event and clk = '1') then
-			if (rst='1') then
-				o<='1';
-				cnt <= 0;
-				triggered <= '0';
-			elsif (hlt='0' and hclk='1') then
-				if (cnt = 0) then
-					if (i='1') then
-						triggered <= '0';
-						o <= '1';
-					else
-						if (triggered = '0') then
-							triggered <= '1';
-							cnt <= 119;
-							o <= '0';
-						end if;
-					end if;
-				else
-					o <= '0';
-					cnt <= cnt - 1;
-				end if;
-			end if;	 
-		end if;
-	end process;
+  process(clk)
+  begin
+    if rising_edge(clk) then
+      if rst = '1' then
+        remaining <= 0;
+        previous_input <= '1';
+        o <= '1';
+      elsif hlt = '0' then
+        previous_input <= i;
+        if remaining /= 0 then
+          remaining <= remaining - 1;
+          o <= '0';
+        elsif previous_input = '1' and i = '0' then
+          remaining <= 119;
+          o <= '0';
+        else
+          o <= '1';
+        end if;
+      end if;
+    end if;
+  end process;
 end Behavioral;

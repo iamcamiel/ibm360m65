@@ -10,11 +10,19 @@ architecture test of test_fpga_registers is
   signal a, b : std_logic_vector(8 downto 0) := (others => '0');
   signal qa, qb, data : std_logic_vector(31 downto 0);
   signal we : std_logic := '0';
+  signal busy : std_logic;
   signal io_int, io_resp, rhi, rlo, resp, size : std_logic_vector(31 downto 0);
 begin
   dut : entity work.EP_MEM port map (
-    clk, a, qa, b, data, we, qb, io_int, io_resp, rhi, rlo, resp, size,
-    x"12345678", x"23456789", x"34567890", x"45678901", x"56789012", x"67890123");
+    clk_i => clk, core_clk_i => clk, cdc_reset_i => '0', cdc_busy_o => busy,
+    a_rd_a_i_0 => a, a_rd_d_o_0 => qa, b_wr_a_i_0 => b,
+    b_wr_d_i_0 => data, b_wr_en_i_0 => we, b_rd_d_o_0 => qb,
+    P_reg_io_int => io_int, P_reg_io_resp => io_resp,
+    P_reg_se_rdata_hi => rhi, P_reg_se_rdata_lo => rlo,
+    P_reg_se_resp => resp, P_reg_se_size => size,
+    P_reg_ext => x"12345678", P_reg_io_cmd => x"23456789",
+    P_reg_se_addr => x"34567890", P_reg_se_cmd => x"45678901",
+    P_reg_se_wdata_hi => x"56789012", P_reg_se_wdata_lo => x"67890123");
   process
   begin
     while not done loop
@@ -31,6 +39,7 @@ begin
       assert qa = value and qb = value report "register read failed at word " & integer'image(word) severity failure;
     end;
   begin
+    wait for 200 ns; -- reset release and initial coherent command snapshot
     read_both(0, x"03602065");
     read_both(2, x"12345678");
     read_both(16#1fb#, M65_BUILD_MAGIC);

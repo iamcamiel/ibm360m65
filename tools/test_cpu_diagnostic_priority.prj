@@ -1,0 +1,2 @@
+vhdl work "../src/vhdl/cpu_diagnostics.vhd"
+vhdl work "test_cpu_diagnostic_priority.vhd"

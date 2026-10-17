@@ -320,11 +320,12 @@ SECTION DP
                 -mpr select
                 -mpr term
               +clock p2
-          XOR
-            +mpr bus[0..7]
-            ORNOT
-              -mpr bus parity a
-              -mpr bus parity b
+          NOT
+            XOR
+              +mpr bus[0..7]
+              ORNOT
+                -mpr bus parity a
+                -mpr bus parity b
         AND
           +clock p2
           +temp s mpr par chk

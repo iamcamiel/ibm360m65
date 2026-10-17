@@ -26,6 +26,7 @@
 #pragma warning (disable: 4244 4018)
 
 extern "C" {
+    bool m65_ce_ros_branch_taken(bool reset);
     DATA360 oldstate;
     DATA360 newstate;
 
@@ -423,11 +424,15 @@ extern "C" {
         init_ros();
 
         init_ald();
+#if defined(COMPARE_M65)
+        m65_ce_ros_branch_taken(true);
+#endif
 
         newstate.EXTERNAL_.switches_0.B11 = true;
         newstate.EXTERNAL_.switches_0.B12 = true;
-        newstate.EXTERNAL_.switches_0.B13 = true;
-        newstate.EXTERNAL_.switches_0.B14 = true;
+        // INTERRUPT and LOAD are active-high pressed flags in the ALD inputs.
+        newstate.EXTERNAL_.switches_0.B13 = false;
+        newstate.EXTERNAL_.switches_0.B14 = false;
         newstate.EXTERNAL_.switches_1.B3 = true;
         newstate.EXTERNAL_.switches_1.B4 = true;
         newstate.EXTERNAL_.switches_6.B6 = true;
@@ -474,8 +479,8 @@ extern "C" {
         newstate.EXTERNAL_.power_on_reset = true;
 
 
-        // DISABLE CE CHECKS
-        newstate.EXTERNAL_.switches_7.B11 = false;
+        // Active-low DISABLE CHECK contact: keep CE checks enabled.
+        newstate.EXTERNAL_.switches_7.B11 = true;
 
     }
 
@@ -1367,11 +1372,89 @@ extern "C" {
 
     extern double runtime;
 
+    // A diagnostic stop is sticky. Preserve the first failing settled state;
+    // neither a console Resume nor later checks may overwrite its evidence.
+    static bool diagnostic_fault = false;
+    bool m65_fault_pending() { return diagnostic_fault; }
+    void m65_latch_fault(const char* reason) {
+        if (diagnostic_fault) return;
+        diagnostic_fault = true;
+        fprintf(lf, "M65FAULT reason=%s runtime=%.9f ROSAR=%03x IC=%06x\n",
+            reason, runtime, newstate.RX.rosar.F, newstate.CA.ic.F);
+        FILE* snapshot = fopen("first-fault-state.bin", "wb");
+        if (snapshot) {
+            fwrite(&oldstate, sizeof(oldstate), 1, snapshot);
+            fwrite(&newstate, sizeof(newstate), 1, snapshot);
+            fclose(snapshot);
+        }
+        FILE* detail = fopen("first-fault-state.json", "w");
+        if (detail) {
+            fprintf(detail, "{\"reason\":\"%s\",\"runtime\":%.9f,\"rosar\":%u,\"ic\":%u,\"paddl\":\"%016llx\",\"ab\":\"%01llx%016llx\",\"st\":\"%016llx\",\"signals\":{",
+                reason, runtime, newstate.RX.rosar.F, newstate.CA.ic.F,
+                newstate.AP.paddl.F, newstate.RA_RB.ab_bit.F2,
+                newstate.RA_RB.ab_bit.F, newstate.RS_RT.st_bit.F);
+            // Individual active-low check signals are recorded in raw polarity.
+            // The snapshot also retains every other latch and clock phase.
+            fprintf(detail, "\"PK_PL.disable_timer_key\":%d,\"KW._disable_time_clock\":%d,",
+                newstate.PK_PL.disable_timer_key, newstate.KW._disable_time_clock);
+#define M65_FAULT_SIGNAL(signal) fprintf(detail, "\"" #signal "\":[%d,%d],", oldstate.signal, newstate.signal);
+#include "m65_fault_signals.inc"
+#undef M65_FAULT_SIGNAL
+            fprintf(detail, "\"snapshot_state_bytes\":%u}}\n", (unsigned)sizeof(newstate));
+            fclose(detail);
+        }
+        fflush(lf);
+    }
+
+    bool m65_ce_ros_branch_taken(bool reset) {
+        static bool error_caused_logout = false;
+        static unsigned request_rosar = 0;
+        if (reset) {
+            error_caused_logout = false;
+            request_rosar = 0;
+            return false;
+        }
+
+        // KU351: distinguish an error request accepted by SOROS from manual,
+        // cycle-counter and split-logout requests. KW091 already applies the
+        // CPU-check control and machine-check mask; an indicator is insufficient.
+        const bool request_phase = oldstate.KU_INT._clock_p0M3 && oldstate.KU_INT._clock_p1;
+        const bool error_set = oldstate.KU_INT.temp_ku351_error_or_split_request &&
+            !oldstate.KW._error_log_required && request_phase;
+        const bool other_set =
+            (!oldstate.KU_INT._pulsed_split_log_to_soros_set && request_phase) ||
+            (oldstate.KU_INT.console_log_out_latch && oldstate.KU_INT.logout_pb_gated &&
+             oldstate.KU_INT.short_ss_pulse) ||
+            (oldstate.KU_INT.temp_ku351_counter_request && oldstate.KU_INT.clock_p0);
+        if (newstate.KW_INT.por_ss ||
+            (!oldstate.KU_INT._soros_tgr && newstate.KU_INT._soros_tgr))
+            error_caused_logout = false;
+        else if (oldstate.KU_INT._soros_tgr && !newstate.KU_INT._soros_tgr) {
+            error_caused_logout = error_set && !other_set;
+            request_rosar = oldstate.RX.rosar.F;
+        }
+
+        // KU511 -> DS208/DS211 -> RX071/RX081: at address-sequencer 14 the
+        // hardware logout forces ROS019 (FETOM 6-42). Require the actual
+        // selection gate AND address transfer, not merely a visit to ROS019.
+        if (error_caused_logout && !oldstate.KU_INT._temp_ku511_3d_ag &&
+            oldstate.RX.gate_rosar_scan_or_mc && oldstate.RX_INT.p4_gate &&
+            oldstate.RX.rosar.F != 0x019 && newstate.RX.rosar.F == 0x019) {
+            error_caused_logout = false;
+            fprintf(lf, "M65CEBRANCH request_rosar=%03x from=%03x to=%03x runtime=%.9f\n",
+                request_rosar, oldstate.RX.rosar.F, newstate.RX.rosar.F, runtime);
+            fflush(lf);
+            return true;
+        }
+        return false;
+    }
+
     void single_cycle() {
+        if (diagnostic_fault) return;
         static int startup = 0;
         runtime += 0.00000001; // 10 ns
 
-        if (startup++ == 100)
+        if (startup++ == M65_NATIVE_POWER_RESET_CYCLES)
             newstate.EXTERNAL_.power_on_reset = false;
 
         memcpy(&oldstate, &newstate, sizeof(oldstate));
@@ -1386,6 +1469,9 @@ extern "C" {
             newstate.EXTERNAL_.P60_cycles_from_transformer = oldstate.EXTERNAL_.P60_cycles_from_transformer;
         }
         process_ald();
+#if defined(COMPARE_M65)
+        const bool ce_branch_first = m65_ce_ros_branch_taken(false);
+#endif
         process_ald_clock();
 
         cycle_mon();
@@ -1394,6 +1480,11 @@ extern "C" {
         process_ald();
 
         cycle_mon();
+#if defined(COMPARE_M65)
+        const bool ce_branch_second = m65_ce_ros_branch_taken(false);
+        if (ce_branch_first || ce_branch_second)
+            m65_latch_fault("ce-ros-branch");
+#endif
     }
 
 #if defined(COMPARE_M65)
@@ -1407,11 +1498,12 @@ extern "C" {
     }
     void record_herc_io(int i) {
         // Compare IOCE transactions, rather than every I/O instruction.
-        // KX decodes only IOCE 1 (channels 0..3). TCH of another IOCE
+        // KX decodes only IOCE 1 (channels 0..3). TIO/TCH of another IOCE
         // completes locally with CC=3, which cpu.c checks independently.
         // Do not suppress CC=3 within IOCE 1: an absent channel there
         // still generates an IOCE transaction that must be compared.
-        if ((i & 0xff000000) == 0x07000000 && (i & 0x00000c00))
+        if (((i & 0xff000000) == 0x05000000 ||
+             (i & 0xff000000) == 0x07000000) && (i & 0x00000c00))
             return;
         io_herc = i;
     }
@@ -1423,13 +1515,17 @@ extern "C" {
             D_fprintf(lf, "  %08x\n", io_65);
             D_fprintf(lf, "Herc:\n");
             D_fprintf(lf, "  %08x\n", io_herc);
+            m65_latch_fault("comparison-io");
         }
         io_65 = 0;
         io_herc = 0;
     }
 
     void record_65_set_key(int sec, int sea) {
-        sk65[sea & 0x7ffff0] = (sec >> 25) & 0x1f;
+        // WA command bits 29..25 carry the five Model-65 key bits.
+        // Compare them in Hercules's key-byte positions 7..3.
+        // SEADDR is a byte address with mark bits; keys belong to 2 KiB blocks.
+        sk65[sea & 0x007ff800] = ((unsigned int)sec >> 22) & 0xf8;
     }
 
     void record_65_write(int sea, int wh, int wl) {
@@ -1477,6 +1573,7 @@ extern "C" {
             for (auto& a : skh)
                 D_fprintf(lf, "  %06x: %02x\n", a.first, a.second);
         }
+        if (w65 != wh || sk65 != skh) m65_latch_fault("comparison-write");
         w65.clear();
         wh.clear();
         sk65.clear();

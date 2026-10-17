@@ -37,6 +37,7 @@ class Validation:
         self.wait_since = 0
         self.clear_remaining = 0
         self.clear_limit = 19
+        self.monitor_commands_sent = 0
         self.tso_proc = None
         self.events = []
         self.timer_disabled_verified = False
@@ -68,6 +69,10 @@ class Validation:
                 self.waiting = False
             if 'Execution gone astray' in line:
                 raise RuntimeError(line.strip())
+            # A CE indicator alone does not establish a CPU failure. Microcode
+            # controls check sampling and recovery; comparison failures do stop.
+            if line.startswith('M65FAULT ') and 'reason=ce-check ' not in line:
+                raise RuntimeError('First fault requires investigation: ' + line.strip())
 
     def ready(self, model):
         return (self.waiting and self.generation > self.consumed
@@ -154,6 +159,17 @@ class Validation:
         elif self.phase == 2 and 'IEE101A READY' in combined:
             command = 'T DATE=75.279'
         elif self.phase == 3 and 'IEE351I' in combined:
+            # MVT emits IEF403I only after MONITOR JOBNAMES. Enable the
+            # reference boot's monitoring before starting any jobs.
+            # Each command consumes its own settled wait, like a reply.
+            monitors = ('MN JOBNAMES,T', 'MN STATUS')
+            if self.monitor_commands_sent < len(monitors):
+                self.send(self.args.primary, '/input',
+                          {'text': monitors[self.monitor_commands_sent]}, model)
+                self.monitor_commands_sent += 1
+                self.result['startup_monitor_commands_sent'] = list(
+                    monitors[:self.monitor_commands_sent])
+                return 'Configuring job and allocation message monitoring'
             command = 'S HASP'
         elif self.phase == 4:
             match = re.search(r'\*?(\d\d)\s+\$ SPECIFY HASP OPTIONS', screen)
@@ -227,6 +243,12 @@ class Validation:
                 http(self.args.backend, '/control', {'command': 'stop'})
             except OSError:
                 pass
+            try:
+                model = http(self.args.backend)
+                self.result['failure_status_refreshed'] = True
+            except Exception as status_error:
+                self.result['failure_status_refreshed'] = False
+                self.result['failure_status_error'] = str(status_error)
             try:
                 self.save(model, 'Validation stopped: ' + str(error))
             except OSError as save_error:

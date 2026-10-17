@@ -405,24 +405,44 @@ DECODE
       -clock p1 O not ros ck
       +reg not decode bit[73]
 
+; AR311 CE: delayed local clock inverter; advance once per 10ns core edge.
+CLOCK
 +clock p2 forced O not ros ck
   ORNOT
     -clock p1 O not ros ck
     -reset ros m field(KU)
+NOCLOCK
 
+; AR311 BC/BD -> BE negative PAR ADJ -> BF positive feedback.
+; ODD AX D04 consumes the sampled negative PAR ADJ, not combinational edit control.
+-edit parity adjust lth
+  NOR
+    AND
+      +edit parity adjust
+      +clock p2 forced O not ros ck
+    AND
+      -clock p1 O not ros ck
+      +edit parity adjust lth
++edit parity adjust lth
+  NOT
+    -edit parity adjust lth
 +rosdr bits 69-73 odd
   XOR
     +reg decode bit[69..73]
+    -edit parity adjust lth
 
 +reset ascOexc on branch
   ANDNOT
     +temp ar401 m[6]
     -rosr 87-90 eq 0110(RA_RB)
 
+; AR311 CK: preserve the inverter delay relative to AS201 P0/P2/P3.
+CLOCK
 -clock p1 O not ros ck
   NAND
     -inhibit local clock(RA_RB)
     +clock p0(AS)
+NOCLOCK
 
 -inhibit local clock
   -inhibit local clock(RA_RB)
@@ -752,11 +772,12 @@ DECODE
     +sibb[0..3]
 
 -oe par a-par b O par adj
-  XOR
-    -sadda parity adjust
-    -sadda parity
-    -saddb parity adjust
-    -saddb parity
+  NOT
+    XOR
+      -sadda parity adjust
+      -sadda parity
+      -saddb parity adjust
+      -saddb parity
 +oe par a-par b O par adj
   NOT
     -oe par a-par b O par adj
@@ -864,9 +885,12 @@ DECODE
        
 ; PAGE AR801
 
+; AR801: the same delayed P2 clock without the forced-reset input.
+CLOCK
 +clock p2 O not ros ck
   NOT
     -clock p1 O not ros ck
+NOCLOCK
 
 ; PAGE AR901
 
@@ -993,3 +1017,6 @@ DECODE
       NAND
         +rosdr bit[81](RY)
         +gt emit to sibb(DR)
+; AP901 ROS parity includes decoded bits 74-77 (FETOM Figure 2-13C).
++ros backup decode bit[74..77]
+  +reg decode bit[74..77]

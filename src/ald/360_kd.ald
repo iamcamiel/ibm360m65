@@ -1141,9 +1141,15 @@ NOCLOCK
 
 CLOCK
 
-+cpu clock p4
-  NOT
-    -temp p3
+; KD901/MC068: retain the delayed P4 storage pulse during sequence inhibition.
+; P0-no-inhibit is inferred from the delay timing and native CAS regression;
+; the source wire at KD901 TD input D02 is not legible in the available scan.
+SPECIAL
+  TD40NS
+    +clock p0 no inhibit
+    OUT
+    +cpu clock p4
+CLOCK
 
 +clock p3Op5
   NOT

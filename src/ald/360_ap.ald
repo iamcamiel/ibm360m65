@@ -182,9 +182,18 @@ NOCLOCK
   ORNOT
     -st d padda bus[55](RS_RT)
     -ones to padda 55
-+temp padda[56..59]
++temp padda[56..57]
   ORNOT
-    -st d padda bus[56..59](RS_RT)
+    -st d padda bus[56..57](RS_RT)
+    -ones to padda 53O56-59
+; AP581 2C B09 receives RT845 AV4, including the RT841 hot-one trigger.
++temp padda[58]
+  ORNOT
+    -st d padda bus[58](RS_RT)
+    -one to padda 58(RS_RT)
++temp padda[59]
+  ORNOT
+    -st d padda bus[59](RS_RT)
     -ones to padda 53O56-59
 +temp padda[60]
   ORNOT
@@ -338,43 +347,107 @@ NOCLOCK
     AND
       +clock p2 extended
       +paddl[4..7]
--latched sum[8..32]
+-latched sum[8..31]
   NOR
     AND
-      +sum[8..32]
+      +sum[8..31]
       +zero shift or enable scan
       -clock p3 extended
     AND
-      +sum[12..36]
+      +sum[12..35]
       +left 4 shift
       -clock p3 extended
     AND
-      +sum[4..28]
+      +sum[4..27]
       +right 4 shift
       -clock p3 extended
     AND
       +clock p2 extended
-      +paddl[8..32]
--latched sum[33..59]
+      +paddl[8..31]
+
+; AP321: bit32 has a positive scan-bypass input, unlike bits8-31.
+-latched sum[32]
   NOR
     AND
-      +scan out bus bit[33..59](KT)
+      +scan out bus bit[32](KT)
       +enable scan bypass
     AND
-      +sum[33..59]
+      +sum[32]
       +zero shift or enable scan
       -clock p3 extended
     AND
-      +sum[37..63]
+      +sum[36]
       +left 4 shift
       -clock p3 extended
     AND
-      +sum[29..55]
+      +sum[28]
       +right 4 shift
       -clock p3 extended
     AND
       +clock p2 extended
-      +paddl[33..59]
+      +paddl[32]
+-latched sum[33..55]
+  NOR
+    AND
+      +scan out bus bit[33..55](KT)
+      +enable scan bypass
+    AND
+      +sum[33..55]
+      +zero shift or enable scan
+      -clock p3 extended
+    AND
+      +sum[37..59]
+      +left 4 shift
+      -clock p3 extended
+    AND
+      +sum[29..51]
+      +right 4 shift
+      -clock p3 extended
+    AND
+      +clock p2 extended
+      +paddl[33..55]
+; AP561/AP571/AP581: positive ZERO SHIFT gates normal SUM separately from scan.
+-latched sum[56..58]
+  NOR
+    AND
+      +scan out bus bit[56..58](KT)
+      +enable scan bypass
+    AND
+      +sum[56..58]
+      +zero shift
+      -clock p3 extended
+    AND
+      +sum[60..62]
+      +left 4 shift
+      -clock p3 extended
+    AND
+      +sum[52..54]
+      +right 4 shift
+      -clock p3 extended
+    AND
+      +clock p2 extended
+      +paddl[56..58]
+; AP591: normal sum59 is qualified by ZERO SHIFT, separately from scan bypass.
+-latched sum[59]
+  NOR
+    AND
+      +scan out bus bit[59](KT)
+      +enable scan bypass
+    AND
+      +sum[59]
+      +zero shift
+      -clock p3 extended
+    AND
+      +sum[63]
+      +left 4 shift
+      -clock p3 extended
+    AND
+      +sum[55]
+      +right 4 shift
+      -clock p3 extended
+    AND
+      +clock p2 extended
+      +paddl[59]
 -latched sum[60..63]
   NOR
     AND
@@ -454,31 +527,33 @@ NOCLOCK
 ; PAGE AP073
 
 -bits 04-07 odd
-  XOR
+  NOT
     +temp
       XOR
-        +half sum[4]
         +temp
           XOR
-            +bit transmit[5..7]
-    -temp
-      NOR
-        AND
-          -half sum[5]
-          +half sum[6]
-          +bit carry[7]
-        AND
-          +half sum[5]
-          +bit carry[6]
-    -temp
-      NOR
-        AND
-          +carry into group[15]
-          -half sum[5]
-          +half sum[6]
-        AND
-          +carry into group[15]
-          -half sum[7]
+            +half sum[4]
+            +temp
+              XOR
+                +bit transmit[5..7]
+        -temp
+          NOR
+            AND
+              -half sum[5]
+              +half sum[6]
+              +bit carry[7]
+            AND
+              +half sum[5]
+              +bit carry[6]
+        -temp
+          NOR
+            AND
+              +carry into group[15]
+              -half sum[5]
+              +half sum[6]
+            AND
+              +carry into group[15]
+              -half sum[7]
 +bits 04-07 odd
   NOT
     -bits 04-07 odd
@@ -510,9 +585,11 @@ NOCLOCK
     AND
       +clock p2 extended
       +temp
-        XOR
-          +paddl parity 04-07
-          +paddl[4..7]
+        NOT
+          +temp
+            XOR
+              +paddl parity 04-07
+              +paddl[4..7]
     AND
       -clock p1 and no error
       +temp full sum error 04-07
@@ -580,31 +657,33 @@ NOCLOCK
 ; PAGE AP113
 
 -bits 08-11 odd
-  XOR
+  NOT
     +temp
       XOR
-        +half sum[8]
         +temp
           XOR
-            +bit transmit[9..11]
-    -temp
-      NOR
-        AND
-          -half sum[9]
-          +half sum[10]
-          +bit carry[11]
-        AND
-          +half sum[9]
-          +bit carry[10]
-    -temp
-      NOR
-        AND
-          +carry into group[14]
-          -half sum[9]
-          +half sum[10]
-        AND
-          +carry into group[14]
-          -half sum[11]
+            +half sum[8]
+            +temp
+              XOR
+                +bit transmit[9..11]
+        -temp
+          NOR
+            AND
+              -half sum[9]
+              +half sum[10]
+              +bit carry[11]
+            AND
+              +half sum[9]
+              +bit carry[10]
+        -temp
+          NOR
+            AND
+              +carry into group[14]
+              -half sum[9]
+              +half sum[10]
+            AND
+              +carry into group[14]
+              -half sum[11]
 +bits 08-11 odd
   NOT
     -bits 08-11 odd
@@ -667,31 +746,33 @@ NOCLOCK
 ; PAGE AP153
 
 -bits 12-15 odd
-  XOR
+  NOT
     +temp
       XOR
-        +half sum[12]
         +temp
           XOR
-            +bit transmit[13..15]
-    -temp
-      NOR
-        AND
-          -half sum[13]
-          +half sum[14]
-          +bit carry[15]
-        AND
-          +half sum[13]
-          +bit carry[14]
-    -temp
-      NOR
-        AND
-          +carry into group[13]
-          -half sum[13]
-          +half sum[14]
-        AND
-          +carry into group[13]
-          -half sum[15]
+            +half sum[12]
+            +temp
+              XOR
+                +bit transmit[13..15]
+        -temp
+          NOR
+            AND
+              -half sum[13]
+              +half sum[14]
+              +bit carry[15]
+            AND
+              +half sum[13]
+              +bit carry[14]
+        -temp
+          NOR
+            AND
+              +carry into group[13]
+              -half sum[13]
+              +half sum[14]
+            AND
+              +carry into group[13]
+              -half sum[15]
 +bits 12-15 odd
   NOT
     -bits 12-15 odd
@@ -699,9 +780,11 @@ NOCLOCK
 ; PAGE AP154
 
 +full sum error 08-15
-  XOR
-    +paddl parity 08-15
-    +paddl[8..15]
+  NOT
+    +temp
+      XOR
+        +paddl parity 08-15
+        +paddl[8..15]
 
 ; PAGE AP155
 
@@ -869,31 +952,33 @@ NOCLOCK
 ; PAGE AP193
 
 -bits 16-19 odd
-  XOR
+  NOT
     +temp
       XOR
-        +half sum[16]
         +temp
           XOR
-            +bit transmit[17..19]
-    -temp
-      NOR
-        AND
-          -half sum[17]
-          +half sum[18]
-          +bit carry[19]
-        AND
-          +half sum[17]
-          +bit carry[18]
-    -temp
-      NOR
-        AND
-          +carry into group[12]
-          -half sum[17]
-          +half sum[18]
-        AND
-          +carry into group[12]
-          -half sum[19]
+            +half sum[16]
+            +temp
+              XOR
+                +bit transmit[17..19]
+        -temp
+          NOR
+            AND
+              -half sum[17]
+              +half sum[18]
+              +bit carry[19]
+            AND
+              +half sum[17]
+              +bit carry[18]
+        -temp
+          NOR
+            AND
+              +carry into group[12]
+              -half sum[17]
+              +half sum[18]
+            AND
+              +carry into group[12]
+              -half sum[19]
 +bits 16-19 odd
   NOT
     -bits 16-19 odd
@@ -955,31 +1040,33 @@ NOCLOCK
 ; PAGE AP233
 
 -bits 20-23 odd
-  XOR
+  NOT
     +temp
       XOR
-        +half sum[20]
         +temp
           XOR
-            +bit transmit[21..23]
-    -temp
-      NOR
-        AND
-          -half sum[21]
-          +half sum[22]
-          +bit carry[23]
-        AND
-          +half sum[21]
-          +bit carry[22]
-    -temp
-      NOR
-        AND
-          +carry into group[11]
-          -half sum[21]
-          +half sum[22]
-        AND
-          +carry into group[11]
-          -half sum[23]
+            +half sum[20]
+            +temp
+              XOR
+                +bit transmit[21..23]
+        -temp
+          NOR
+            AND
+              -half sum[21]
+              +half sum[22]
+              +bit carry[23]
+            AND
+              +half sum[21]
+              +bit carry[22]
+        -temp
+          NOR
+            AND
+              +carry into group[11]
+              -half sum[21]
+              +half sum[22]
+            AND
+              +carry into group[11]
+              -half sum[23]
 +bits 20-23 odd
   NOT
     -bits 20-23 odd
@@ -987,9 +1074,11 @@ NOCLOCK
 ; PAGE AP234
 
 +full sum error 16-23
-  XOR
-    +paddl parity 16-23
-    +paddl[16..23]
+  NOT
+    +temp
+      XOR
+        +paddl parity 16-23
+        +paddl[16..23]
 
 ; PAGE AP235
 
@@ -1104,31 +1193,33 @@ NOCLOCK
 ; PAGE AP273
 
 -bits 24-27 odd
-  XOR
+  NOT
     +temp
       XOR
-        +half sum[24]
         +temp
           XOR
-            +bit transmit[25..27]
-    -temp
-      NOR
-        AND
-          -half sum[25]
-          +half sum[26]
-          +bit carry[27]
-        AND
-          +half sum[25]
-          +bit carry[26]
-    -temp
-      NOR
-        AND
-          +carry into group[10]
-          -half sum[25]
-          +half sum[26]
-        AND
-          +carry into group[10]
-          -half sum[27]
+            +half sum[24]
+            +temp
+              XOR
+                +bit transmit[25..27]
+        -temp
+          NOR
+            AND
+              -half sum[25]
+              +half sum[26]
+              +bit carry[27]
+            AND
+              +half sum[25]
+              +bit carry[26]
+        -temp
+          NOR
+            AND
+              +carry into group[10]
+              -half sum[25]
+              +half sum[26]
+            AND
+              +carry into group[10]
+              -half sum[27]
 +bits 24-27 odd
   NOT
     -bits 24-27 odd
@@ -1191,31 +1282,33 @@ NOCLOCK
 ; PAGE AP313
 
 -bits 28-31 odd
-  XOR
+  NOT
     +temp
       XOR
-        +half sum[28]
         +temp
           XOR
-            +bit transmit[29..31]
-    -temp
-      NOR
-        AND
-          -half sum[29]
-          +half sum[30]
-          +bit carry[31]
-        AND
-          +half sum[29]
-          +bit carry[30]
-    -temp
-      NOR
-        AND
-          +carry into group[9]
-          -half sum[29]
-          +half sum[30]
-        AND
-          +carry into group[9]
-          -half sum[31]
+            +half sum[28]
+            +temp
+              XOR
+                +bit transmit[29..31]
+        -temp
+          NOR
+            AND
+              -half sum[29]
+              +half sum[30]
+              +bit carry[31]
+            AND
+              +half sum[29]
+              +bit carry[30]
+        -temp
+          NOR
+            AND
+              +carry into group[9]
+              -half sum[29]
+              +half sum[30]
+            AND
+              +carry into group[9]
+              -half sum[31]
 +bits 28-31 odd
   NOT
     -bits 28-31 odd
@@ -1223,9 +1316,11 @@ NOCLOCK
 ; PAGE AP314
 
 +full sum error 24-31
-  XOR
-    +paddl parity 24-31
-    +paddl[24..31]
+  NOT
+    +temp
+      XOR
+        +paddl parity 24-31
+        +paddl[24..31]
 
 ; PAGE AP315
 
@@ -1496,31 +1591,33 @@ NOCLOCK
 ; PAGE AP353
 
 -bits 32-35 odd
-  XOR
+  NOT
     +temp
       XOR
-        +half sum[32]
         +temp
           XOR
-            +bit transmit[33..35]
-    -temp
-      NOR
-        AND
-          -half sum[33]
-          +half sum[34]
-          +bit carry[35]
-        AND
-          +half sum[33]
-          +bit carry[34]
-    -temp
-      NOR
-        AND
-          +carry into group[8]
-          -half sum[33]
-          +half sum[34]
-        AND
-          +carry into group[8]
-          -half sum[35]
+            +half sum[32]
+            +temp
+              XOR
+                +bit transmit[33..35]
+        -temp
+          NOR
+            AND
+              -half sum[33]
+              +half sum[34]
+              +bit carry[35]
+            AND
+              +half sum[33]
+              +bit carry[34]
+        -temp
+          NOR
+            AND
+              +carry into group[8]
+              -half sum[33]
+              +half sum[34]
+            AND
+              +carry into group[8]
+              -half sum[35]
 +bits 32-35 odd
   NOT
     -bits 32-35 odd
@@ -1582,31 +1679,33 @@ NOCLOCK
 ; PAGE AP393
 
 -bits 36-39 odd
-  XOR
+  NOT
     +temp
       XOR
-        +half sum[36]
         +temp
           XOR
-            +bit transmit[37..39]
-    -temp
-      NOR
-        AND
-          -half sum[37]
-          +half sum[38]
-          +bit carry[39]
-        AND
-          +half sum[37]
-          +bit carry[38]
-    -temp
-      NOR
-        AND
-          +carry into group[7]
-          -half sum[37]
-          +half sum[38]
-        AND
-          +carry into group[7]
-          -half sum[39]
+            +half sum[36]
+            +temp
+              XOR
+                +bit transmit[37..39]
+        -temp
+          NOR
+            AND
+              -half sum[37]
+              +half sum[38]
+              +bit carry[39]
+            AND
+              +half sum[37]
+              +bit carry[38]
+        -temp
+          NOR
+            AND
+              +carry into group[7]
+              -half sum[37]
+              +half sum[38]
+            AND
+              +carry into group[7]
+              -half sum[39]
 +bits 36-39 odd
   NOT
     -bits 36-39 odd
@@ -1614,9 +1713,11 @@ NOCLOCK
 ; PAGE AP394
 
 +full sum error 32-39
-  XOR
-    +paddl parity 32-39
-    +paddl[32..39]
+  NOT
+    +temp
+      XOR
+        +paddl parity 32-39
+        +paddl[32..39]
 
 ; PAGE AP395
 
@@ -1745,31 +1846,33 @@ NOCLOCK
 ; PAGE AP433
 
 -bits 40-43 odd
-  XOR
+  NOT
     +temp
       XOR
-        +half sum[40]
         +temp
           XOR
-            +bit transmit[41..43]
-    -temp
-      NOR
-        AND
-          -half sum[41]
-          +half sum[42]
-          +bit carry[43]
-        AND
-          +half sum[41]
-          +bit carry[42]
-    -temp
-      NOR
-        AND
-          +carry into group[6]
-          -half sum[41]
-          +half sum[42]
-        AND
-          +carry into group[6]
-          -half sum[43]
+            +half sum[40]
+            +temp
+              XOR
+                +bit transmit[41..43]
+        -temp
+          NOR
+            AND
+              -half sum[41]
+              +half sum[42]
+              +bit carry[43]
+            AND
+              +half sum[41]
+              +bit carry[42]
+        -temp
+          NOR
+            AND
+              +carry into group[6]
+              -half sum[41]
+              +half sum[42]
+            AND
+              +carry into group[6]
+              -half sum[43]
 +bits 40-43 odd
   NOT
     -bits 40-43 odd
@@ -1831,31 +1934,33 @@ NOCLOCK
 ; PAGE AP473
 
 -bits 44-47 odd
-  XOR
+  NOT
     +temp
       XOR
-        +half sum[44]
         +temp
           XOR
-            +bit transmit[45..47]
-    -temp
-      NOR
-        AND
-          -half sum[45]
-          +half sum[46]
-          +bit carry[47]
-        AND
-          +half sum[45]
-          +bit carry[46]
-    -temp
-      NOR
-        AND
-          +carry into group[5]
-          -half sum[45]
-          +half sum[46]
-        AND
-          +carry into group[5]
-          -half sum[47]
+            +half sum[44]
+            +temp
+              XOR
+                +bit transmit[45..47]
+        -temp
+          NOR
+            AND
+              -half sum[45]
+              +half sum[46]
+              +bit carry[47]
+            AND
+              +half sum[45]
+              +bit carry[46]
+        -temp
+          NOR
+            AND
+              +carry into group[5]
+              -half sum[45]
+              +half sum[46]
+            AND
+              +carry into group[5]
+              -half sum[47]
 +bits 44-47 odd
   NOT
     -bits 44-47 odd
@@ -1863,9 +1968,11 @@ NOCLOCK
 ; PAGE AP474
 
 +full sum error 40-47
-  XOR
-    +paddl parity 40-47
-    +paddl[40..47]
+  NOT
+    +temp
+      XOR
+        +paddl parity 40-47
+        +paddl[40..47]
 
 ; PAGE AP475
 
@@ -1873,6 +1980,9 @@ NOCLOCK
   NOT
     -temp
       NOR
+        AND
+          +scan out bus p40-47 to paddl(KT)
+          +enable scan bypass
         -clock p3 extendedOshift r1
         AND
           +right 4 shift
@@ -1885,12 +1995,12 @@ NOCLOCK
           +bits 36-39 odd
           +bits 40-43 odd
         AND
-          +zero shift or enable scan
+          +zero shift
           -clock p3 extended
           -bits 40-43 odd
           -bits 44-47 odd
         AND
-          +zero shift or enable scan
+          +zero shift
           -clock p3 extended
           +bits 40-43 odd
           +bits 44-47 odd
@@ -2049,31 +2159,33 @@ NOCLOCK
 ; PAGE AP513
 
 -bits 48-51 odd
-  XOR
+  NOT
     +temp
       XOR
-        +half sum[48]
         +temp
           XOR
-            +bit transmit[49..51]
-    -temp
-      NOR
-        AND
-          -half sum[49]
-          +half sum[50]
-          +bit carry[51]
-        AND
-          +half sum[49]
-          +bit carry[50]
-    -temp
-      NOR
-        AND
-          +carry into group[4]
-          -half sum[49]
-          +half sum[50]
-        AND
-          +carry into group[4]
-          -half sum[51]
+            +half sum[48]
+            +temp
+              XOR
+                +bit transmit[49..51]
+        -temp
+          NOR
+            AND
+              -half sum[49]
+              +half sum[50]
+              +bit carry[51]
+            AND
+              +half sum[49]
+              +bit carry[50]
+        -temp
+          NOR
+            AND
+              +carry into group[4]
+              -half sum[49]
+              +half sum[50]
+            AND
+              +carry into group[4]
+              -half sum[51]
 +bits 48-51 odd
   NOT
     -bits 48-51 odd
@@ -2138,31 +2250,33 @@ NOCLOCK
 ; PAGE AP553
 
 -bits 52-55 odd
-  XOR
+  NOT
     +temp
       XOR
-        +half sum[52]
         +temp
           XOR
-            +bit transmit[53..55]
-    -temp
-      NOR
-        AND
-          -half sum[53]
-          +half sum[54]
-          +bit carry[55]
-        AND
-          +half sum[53]
-          +bit carry[54]
-    -temp
-      NOR
-        AND
-          +carry into group[3]
-          -half sum[53]
-          +half sum[54]
-        AND
-          +carry into group[3]
-          -half sum[55]
+            +half sum[52]
+            +temp
+              XOR
+                +bit transmit[53..55]
+        -temp
+          NOR
+            AND
+              -half sum[53]
+              +half sum[54]
+              +bit carry[55]
+            AND
+              +half sum[53]
+              +bit carry[54]
+        -temp
+          NOR
+            AND
+              +carry into group[3]
+              -half sum[53]
+              +half sum[54]
+            AND
+              +carry into group[3]
+              -half sum[55]
 +bits 52-55 odd
   NOT
     -bits 52-55 odd
@@ -2170,9 +2284,11 @@ NOCLOCK
 ; PAGE AP554
 
 +full sum error 48-55
-  XOR
-    +paddl parity 48-55
-    +paddl[48..55]
+  NOT
+    +temp
+      XOR
+        +paddl parity 48-55
+        +paddl[48..55]
 
 ; PAGE AP555
 
@@ -2180,6 +2296,9 @@ NOCLOCK
   NOT
     -temp
       NOR
+        AND
+          +scan out bus p48-55 to paddl(KT)
+          +enable scan bypass
         -clock p3 extendedOshift r1
         AND
           +right 4 shift
@@ -2192,12 +2311,12 @@ NOCLOCK
           +bits 44-47 odd
           +bits 48-51 odd
         AND
-          +zero shift or enable scan
+          +zero shift
           -clock p3 extended
           -bits 48-51 odd
           -bits 52-55 odd
         AND
-          +zero shift or enable scan
+          +zero shift
           -clock p3 extended
           +bits 48-51 odd
           +bits 52-55 odd
@@ -2321,31 +2440,33 @@ NOCLOCK
 ; PAGE AP593
 
 -bits 56-59 odd
-  XOR
+  NOT
     +temp
       XOR
-        +half sum[56]
         +temp
           XOR
-            +bit transmit[57..59]
-    -temp
-      NOR
-        AND
-          -half sum[57]
-          +half sum[58]
-          +bit carry[59]
-        AND
-          +half sum[57]
-          +bit carry[58]
-    -temp
-      NOR
-        AND
-          +carry into group[2]
-          -half sum[57]
-          +half sum[58]
-        AND
-          +carry into group[2]
-          -half sum[59]
+            +half sum[56]
+            +temp
+              XOR
+                +bit transmit[57..59]
+        -temp
+          NOR
+            AND
+              -half sum[57]
+              +half sum[58]
+              +bit carry[59]
+            AND
+              +half sum[57]
+              +bit carry[58]
+        -temp
+          NOR
+            AND
+              +carry into group[2]
+              -half sum[57]
+              +half sum[58]
+            AND
+              +carry into group[2]
+              -half sum[59]
 +bits 56-59 odd
   NOT
     -bits 56-59 odd
@@ -2394,31 +2515,33 @@ NOCLOCK
 ; PAGE AP633
 
 -bits 60-63 odd
-  XOR
+  NOT
     +temp
       XOR
-        +half sum[60]
         +temp
           XOR
-            +bit transmit[61..63]
-    -temp
-      NOR
-        AND
-          -half sum[61]
-          +half sum[62]
-          +bit carry[63]
-        AND
-          +half sum[61]
-          +bit carry[62]
-    -temp
-      NOR
-        AND
-          +carry into group[1]
-          -half sum[61]
-          +half sum[62]
-        AND
-          +carry into group[1]
-          -half sum[63]
+            +half sum[60]
+            +temp
+              XOR
+                +bit transmit[61..63]
+        -temp
+          NOR
+            AND
+              -half sum[61]
+              +half sum[62]
+              +bit carry[63]
+            AND
+              +half sum[61]
+              +bit carry[62]
+        -temp
+          NOR
+            AND
+              +carry into group[1]
+              -half sum[61]
+              +half sum[62]
+            AND
+              +carry into group[1]
+              -half sum[63]
 +bits 60-63 odd
   NOT
     -bits 60-63 odd
@@ -2426,9 +2549,11 @@ NOCLOCK
 ; PAGE AP634
 
 +full sum error 56-63
-  XOR
-    +paddl parity 56-63
-    +paddl[56..63]
+  NOT
+    +temp
+      XOR
+        +paddl parity 56-63
+        +paddl[56..63]
 
 ; PAGE AP635
 
@@ -2465,14 +2590,14 @@ NOCLOCK
           AND
             +left 4 shift
             -clock p3 extended
-            -bits 60-63 odd
+            +bits 60-63 odd
             -temp
               NOT
                 +bus parity 64-67
           AND
             +left 4 shift
             -clock p3 extended
-            +bits 60-63 odd
+            -bits 60-63 odd
             +bus parity 64-67
           AND
             +clock p2 extended
@@ -2882,16 +3007,23 @@ NOCLOCK
 ; PAGE AP674
 
 +full sum error 64-67
-  XOR
-    +paddl parity 64-67
-    +paddl[64..67]
+  NOT
+    +temp
+      XOR
+        +paddl parity 64-67
+        +paddl[64..67]
 
 ; PAGE AP675
+
+; AP675 1A AN B03->D07 inverts AP631 +SUM63 for parity gate1B AA B02.
++temp ap675 1a an not
+  NOT
+    +sum[63]
 
 -paddl parity 64-67
   NOR
     AND
-      +sum[63]
+      +temp ap675 1a an not
       -clock p3 extendedOshift r1
     AND
       +right 4 shift
@@ -3422,9 +3554,10 @@ NOCLOCK
 
 ; PAGE AP747
 
+; AP671 BQ4/BP4 include injected bits 64/65; bits 66/67 match both paths.
 -half sum error 64-67
   XOR
-    +padd bit a[64..67]
+    +padd bit b[64..67]
     +left shift par adj
     +ab 64-65 odd on l2 shift
     ++2 comp 64-67 par adj
@@ -3480,11 +3613,15 @@ NOCLOCK
 
 ; PAGE AP752
 
+; AP752 1M AD D12 consumes AP631 AN4 positive HALF SUM63.
+; Preserve the final precheck polarity without the negative bit63 stage.
 -half sum error 56-63
-  XOR
-    -half sum[56..63]
-    -padda bus parity 56-63
-    +paddb bus parity 56-63
+  NOT
+    XOR
+      -half sum[56..62]
+      +half sum[63]
+      -padda bus parity 56-63
+      +paddb bus parity 56-63
 
 ; PAGE AP761
 
@@ -3760,16 +3897,15 @@ NOCLOCK
 ; PAGE AP793
 
 +half sum error
-  NOT
-    XOR
-      -half sum error 04-07
-      -half sum error 08-15
-      -half sum error 16-23
-      -half sum error 24-31
-      -half sum error 32-39
-      -half sum error 40-47
-      -half sum error 48-55
-      -half sum error 56-67
+  XOR
+    -half sum error 04-07
+    -half sum error 08-15
+    -half sum error 16-23
+    -half sum error 24-31
+    -half sum error 32-39
+    -half sum error 40-47
+    -half sum error 48-55
+    -half sum error 56-67
 
 ; PAGE AP801
 
@@ -3805,9 +3941,14 @@ NOCLOCK
 
 CLOCK
 
+; AP801 7J BJ D10 feeds inverter 7G BK B07->D06. Derive both
+; complementary controls from the same settled input pins in CLOCK;
+; reading the registered BJ output here adds an unintended core edge.
 -clock p3 extended O no error
-  NOT
-    +clock p2 extended or error
+  AND
+    -clock p1
+    -clock p3
+    -inhibit clock padd hs error
 
 +clock p2 extended or error
   ORNOT
@@ -3850,7 +3991,7 @@ NOCLOCK
     -half sum error 32-39     
     -half sum error 40-47     
     -half sum error 48-55     
-    -half sum error 56-63
+    -half sum error 56-67
 +half sum error 04-31     
   ORNOT
     -half sum error 04-07     
@@ -4092,7 +4233,9 @@ NOCLOCK
           +roslth 97-99 odd(RQ)
           +roslth 78-81 odd
           +roslth 82-84 odd
-          -ind roslth parity
+          NOT
+            -ind roslth parity
+          +ros backup decode bit[74..77](AR)
       -clock p1
     AND
       +clock p0
