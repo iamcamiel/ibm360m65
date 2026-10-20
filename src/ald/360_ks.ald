@@ -25,9 +25,13 @@ SECTION KS
 +saflz
   +set staa if pal07-63 eq 0(DR)
 
+; KS021 positive feedback inverter is a wire cone, not a second state bit.
+; Consume it in the negative latch equation within the same Boolean pass.
+INLINE
 +staa
   NOT
     -staa
+NOCLOCK
 +staa bus
   +staa
 -stat a for ce satr sel
@@ -392,8 +396,9 @@ CLOCK
           NOT
             -e bit[6](RE)
 ; KS121 5D-5H -> 6F is a combinational reset cone, not sampled state.
-; Release with the current phase/ROS controls before evaluating STAA hold.
-NOCLOCK
+; KS021 5M must consume this cone in the same Boolean pass. Keeping only
+; a NOCLOCK intermediate still delays reset release at the F4/P0 handoff.
+INLINE
 
 -reset staa
   NOR
@@ -413,6 +418,8 @@ NOCLOCK
       +stat clock p0
       +set staa if sal00-07 not eq 0(DR)
       -temp staa lth
+
+NOCLOCK
 
 +staa lth
   ANDNOT

@@ -19,6 +19,11 @@ architecture rtl of CPU_DIAGNOSTICS is
   signal history : history_type;
   attribute ram_style : string;
   attribute ram_style of history : signal is "block";
+  -- Pipeline only the BRAM write port. Logical head/count and event capture
+  -- retain their original edge; same-address reads forward the pending entry.
+  signal history_write_valid : std_logic := '0';
+  signal history_write_address : unsigned(7 downto 0) := (others=>'0');
+  signal history_write_data : std_logic_vector(95 downto 0) := (others=>'0');
   signal previous, before_event, at_event : std_logic_vector(1023 downto 0) := (others=>'0');
   signal ticks, event_time : unsigned(63 downto 0) := (others=>'0');
   signal generation : unsigned(31 downto 0) := (others=>'0');
@@ -45,6 +50,17 @@ begin
   response_o <= response;
   response_valid_o <= response_valid;
 
+  -- A dedicated RAM process keeps its write enable a single registered net.
+  -- Reset invalidates logical contents using count, as before; RAM is not reset.
+  process(clk_i)
+  begin
+    if rising_edge(clk_i) then
+      if history_write_valid='1' then
+        history(to_integer(history_write_address)) <= history_write_data;
+      end if;
+    end if;
+  end process;
+
   process(clk_i)
     variable transition : std_logic_vector(3 downto 0);
     variable trigger, check_trigger, breakpoint_hit, breakpoint_trigger, step_trigger, running, record_edge : boolean;
@@ -54,6 +70,7 @@ begin
   begin
     if rising_edge(clk_i) then
       response_valid <= '0';
+      history_write_valid <= '0';
       if reset_i='1' then
         previous <= (others=>'0'); before_event <= (others=>'0'); at_event <= (others=>'0');
         ticks <= (others=>'0'); event_time <= (others=>'0'); generation <= (others=>'0');
@@ -101,7 +118,9 @@ begin
           entry_flags := state_i(31 downto 0);
           entry_flags(24) := '0';
           if trigger then entry_flags(24) := '1'; end if;
-          history(to_integer(head)) <= std_logic_vector(ticks) & entry_flags;
+          history_write_valid <= '1';
+          history_write_address <= head;
+          history_write_data <= std_logic_vector(ticks) & entry_flags;
           head <= head+1;
           if count<256 then count<=count+1; end if;
         end if;
@@ -156,6 +175,7 @@ begin
                   armed<='1'; frozen<='0'; mask<=command_i(3 downto 0);
                   halt_on_event<=command_i(4); changed<=(others=>'0');
                   head<=(others=>'0'); count<=0; previous<=state_i;
+                  history_write_valid<='0'; -- discard the old arm's pending entry
                   breakpoint_hits<=(others=>'0'); event_reason<=(others=>'0');
                   event_hits<=(others=>'0'); event_breakpoint_config<=(others=>'0');
                   event_breakpoint_target<=(others=>'0'); event_step_start_ros<=(others=>'0');
@@ -182,7 +202,11 @@ begin
                 elsif index<count*4 then
                   if count=256 then slot:=to_integer(head+unsigned(command_i(9 downto 2)));
                   else slot:=to_integer(unsigned(command_i(9 downto 2))); end if;
-                  history_read<=history(slot); history_lane<=to_integer(unsigned(command_i(1 downto 0)));
+                  -- Read-during-write behavior must not depend on BRAM mode.
+                  if history_write_valid='1' and history_write_address=to_unsigned(slot,8) then
+                    history_read<=history_write_data;
+                  else history_read<=history(slot); end if;
+                  history_lane<=to_integer(unsigned(command_i(1 downto 0)));
                   history_read_pending<='1'; response_valid<='0';
                 else response<=x"E0000001"; end if;
               when 7 =>

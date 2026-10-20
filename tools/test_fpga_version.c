@@ -19,7 +19,9 @@ int main(void)
         {0x10007, magic, 0x10000, 0x20261007, 0x00174503, 0}, /* predates M17 ALD correction */
         {0x10007, magic, 0x10001, 0x20261007, 0x00174503, 0}, /* predates two-pass scheduling */
         {0x10007, magic, 0x10002, 0x20261007, 0x00174503, 0}, /* missing ISK return path */
-        {0x10007, magic, 0x10028, 0x20261007, 0x00174503, 0}, /* unknown later revision */
+        {0x10007, magic, 0x1002a, 0x20261007, 0x00174503, 0}, /* unknown later revision */
+        {0x10007, magic, 0x10028, 0x20261019, 0x00174503, 0}, /* KS021 consumes the prior-pass reset at the F4/P0 handoff */
+        {0x10007, magic, 0x10027, 0x20261017, 0x00174503, 0}, /* diagnostic history RAM write path fails 100 MHz routed timing */
         {0x10007, magic, 0x10026, 0x20261017, 0x00174503, 0}, /* sampled KS121 reset can lose arithmetic-shift zero status */
         {0x10007, magic, 0x10022, 0x20261007, 0x00174503, 0}, /* storage bridge can lose first-pass pulses or double a store sequence */
         {0x10007, magic, 0x10021, 0x20261007, 0x00174503, 0}, /* held-input single-shots do not expire */

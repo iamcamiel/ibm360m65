@@ -24,6 +24,35 @@ def http(base, path='/state', data=None):
     return json.loads(body) if body else None
 
 
+def test_job_codes(listing, job='TSOTEST'):
+    """Read step results only inside a completed listing for this job.
+
+    MVT can omit the job/step names on IEF142I. The submitted JCL and
+    IEF376I end record provide its job context; an adjacent job does not.
+    Do not accept a partially printed job with more steps still to come.
+    """
+    current = None
+    codes = []
+    completed = []
+    for line in listing.splitlines():
+        header = re.match(r'\s*//([A-Z0-9@$#]{1,8})\s+JOB\b', line)
+        if header:
+            current = header[1]
+            codes = []
+        if current != job:
+            continue
+        code = re.search(r'\bIEF142I\s+(.*?)\bCOND CODE\s+(\d{4})\b', line)
+        if code:
+            # Named messages must agree with the enclosing JCL job as well.
+            prefix = code[1].strip()
+            if prefix.startswith('-') or prefix.split()[:1] == [job]:
+                codes.append(code[2])
+        if re.search(r'\bIEF376I\s+JOB\s+/' + re.escape(job) + r'\s*/\s+STOP\b', line):
+            completed.extend(codes)
+            current = None
+    return completed
+
+
 class Validation:
     def __init__(self, args):
         self.args = args
@@ -41,10 +70,30 @@ class Validation:
         self.tso_proc = None
         self.events = []
         self.timer_disabled_verified = False
+        self.final_only = False
         self.result = {'system': 'OS/360 21.8F MVT, Model 65',
                        'cpu_mode': 'ALD C++ compared with Hercules',
                        'interval_timer': False, 'complete': False,
                        'checkpoint': str(args.checkpoint.resolve())}
+
+    def restore_final(self):
+        """Continue only result verification, using the existing terminals."""
+        saved = json.loads((self.run / 'validation-progress.json').read_text())
+        if (saved.get('phase') != 11 or saved.get('complete')
+                or saved.get('failure') or saved.get('comparison_errors') != 0
+                or saved.get('interval_timer') is not False
+                or Path(saved['checkpoint']).resolve() != self.args.checkpoint.resolve()
+                or not all(saved.get(k) for k in
+                           ('hasp_started', 'tso_initialized', 'tso_logon',
+                            'catalog_datasets_verified'))
+                or not any(e.get('phase') == 10 and e.get('endpoint') == self.args.tso
+                           and e.get('action') == {'text': 'SUBMIT CHECK.CNTL'}
+                           for e in saved.get('events', []))):
+            raise RuntimeError('Final verification requires a healthy submitted phase-11 run')
+        self.result = saved
+        self.events = saved['events']
+        self.phase = 11
+        self.final_only = True
 
     def observe(self):
         path = self.run / 'm65.log'
@@ -52,27 +101,34 @@ class Validation:
             return
         with path.open('rb') as log:
             log.seek(self.offset)
-            chunk = log.read()
-            self.offset = log.tell()
-        lines = (self.remainder + chunk.decode('latin1')).split('\n')
-        self.remainder = lines.pop()
-        for line in lines:
-            if line.startswith('M65TIMER '):
-                if line.strip() != 'M65TIMER disable_key=1 clock_enable=0':
-                    raise RuntimeError('ALD interval timer is not disabled: ' + line.strip())
-                self.timer_disabled_verified = True
-            if line.startswith('M65WAIT entered '):
-                self.generation += 1
-                self.waiting = True
-                self.wait_since = time.monotonic()
-            elif line.startswith('M65WAIT left'):
-                self.waiting = False
-            if 'Execution gone astray' in line:
-                raise RuntimeError(line.strip())
-            # A CE indicator alone does not establish a CPU failure. Microcode
-            # controls check sampling and recovery; comparison failures do stop.
-            if line.startswith('M65FAULT ') and 'reason=ce-check ' not in line:
-                raise RuntimeError('First fault requires investigation: ' + line.strip())
+            # A restored controller must replay large logs without loading
+            # the complete comparison history into memory.
+            for raw in log:
+                self.offset = log.tell()
+                line = self.remainder + raw.decode('latin1')
+                self.remainder = ''
+                if not line.endswith('\n'):
+                    self.remainder = line
+                    break
+                self.observe_line(line.rstrip('\r\n'))
+
+    def observe_line(self, line):
+        if line.startswith('M65TIMER '):
+            if line.strip() != 'M65TIMER disable_key=1 clock_enable=0':
+                raise RuntimeError('ALD interval timer is not disabled: ' + line.strip())
+            self.timer_disabled_verified = True
+        if line.startswith('M65WAIT entered '):
+            self.generation += 1
+            self.waiting = True
+            self.wait_since = time.monotonic()
+        elif line.startswith('M65WAIT left'):
+            self.waiting = False
+        if 'Execution gone astray' in line:
+            raise RuntimeError(line.strip())
+        # A CE indicator alone does not establish a CPU failure. Microcode
+        # controls check sampling and recovery; comparison failures do stop.
+        if line.startswith('M65FAULT ') and 'reason=ce-check ' not in line:
+            raise RuntimeError('First fault requires investigation: ' + line.strip())
 
     def ready(self, model):
         return (self.waiting and self.generation > self.consumed
@@ -80,6 +136,8 @@ class Validation:
                 and 'CPU paused' not in model['status'])
 
     def send(self, base, path, data, model):
+        if self.final_only:
+            raise RuntimeError('Final verification cannot send guest commands')
         http(base, path, data)
         self.consumed = self.generation
         self.events.append({'instructions': model['instructions'],
@@ -106,6 +164,10 @@ class Validation:
                 time.sleep(0.05 * (attempt + 1))
 
     def attach_tso(self):
+        if self.final_only:
+            # Reuse the terminal already attached to the current run. Never
+            # create another helper or truncate its output during a handoff.
+            return http(self.args.tso)
         if self.tso_proc is None:
             directory = self.run.parent / (self.run.name + '-tso')
             output = (self.run / 'tso-helper.log').open('wb')
@@ -129,6 +191,22 @@ class Validation:
         screen = primary['console']
         if not self.timer_disabled_verified:
             return 'Waiting for ALD timer-disable confirmation'
+        if self.phase == 11:
+            # This is observation only. A consumed model wait, paused CPU or
+            # full primary display must not hide already printed job results.
+            terminal = self.attach_tso()
+            if terminal is not None:
+                text = terminal['console']
+                path = self.run / 'prt00e.txt'
+                codes = test_job_codes(path.read_text(errors='replace')) if path.exists() else []
+                if codes and 'JOB TSOTEST' in text and 'SUBMITTED' in text:
+                    self.result['test_job_condition_codes'] = codes
+                    if any(x != '0000' for x in codes):
+                        raise RuntimeError('TSOTEST returned ' + ','.join(codes))
+                    self.result['complete'] = True
+                    return 'MVT, HASP, TSO logon, catalog and submitted job verified'
+            if self.final_only:
+                return 'Waiting for TSOTEST completion'
         combined = screen + '\n' + guest
         ready = self.ready(model)
         # A full display blocks further WTOs with the interval timer off.
@@ -201,15 +279,6 @@ class Validation:
             elif self.phase == 10 and all(x in text for x in ('CHECK.CNTL', 'TEST.DATA', 'READY')):
                 self.result['catalog_datasets_verified'] = True
                 tso_command = 'SUBMIT CHECK.CNTL'
-            elif self.phase == 11:
-                listing = (self.run / 'prt00e.txt').read_text(errors='replace') if (self.run / 'prt00e.txt').exists() else ''
-                codes = re.findall(r'IEF142I\s+TSOTEST\s+.*?COND CODE\s+(\d{4})', listing)
-                if codes and 'JOB TSOTEST' in text and 'SUBMITTED' in text:
-                    self.result['test_job_condition_codes'] = codes
-                    if any(x != '0000' for x in codes):
-                        raise RuntimeError('TSOTEST returned ' + ','.join(codes))
-                    self.result['complete'] = True
-                    return 'MVT, HASP, TSO logon, catalog and submitted job verified'
             if tso_command is not None:
                 self.send(self.args.tso, '/input', {'text': tso_command}, model)
                 self.phase += 1
@@ -228,6 +297,8 @@ class Validation:
                 self.observe()
                 if model['comparison_errors']:
                     raise RuntimeError('Comparator reported a mismatch')
+                if model.get('first_fault'):
+                    raise RuntimeError('First fault requires investigation: ' + str(model['first_fault']))
                 primary = http(self.args.primary)
                 path = self.run / 'mvtlog.txt'
                 guest = path.read_text(errors='replace') if path.exists() else ''
@@ -267,7 +338,13 @@ def main():
     parser.add_argument('--console-port', type=int, default=3289)
     parser.add_argument('--tso-web-port', type=int, default=8154)
     parser.add_argument('--ws3270', type=Path, default=Path('gen/wc3270/ws3270.exe'))
-    Validation(parser.parse_args()).run_validation()
+    parser.add_argument('--resume-final', action='store_true',
+                        help='Verify an existing submitted phase-11 run without guest commands')
+    args = parser.parse_args()
+    validation = Validation(args)
+    if args.resume_final:
+        validation.restore_final()
+    validation.run_validation()
 
 
 if __name__ == '__main__':
