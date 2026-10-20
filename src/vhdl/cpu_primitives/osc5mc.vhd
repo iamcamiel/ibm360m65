@@ -22,7 +22,6 @@ USE ieee.std_logic_arith.all;
 
 entity OSC5MC is
     Port ( clk : in  STD_LOGIC;
-			  hclk : in STD_LOGIC;
 			  rst : in STD_LOGIC;
 			  hlt : in STD_LOGIC;
 		     i : in STD_LOGIC;
@@ -39,7 +38,7 @@ begin
 			if (rst='1') then
 				o<='0';
 				cnt <= 0;
-			elsif (hlt='0' and hclk='1') then
+			elsif (hlt='0') then
 				if (i = '1' and cnt = 0) then
 					o <= '1';
 				else

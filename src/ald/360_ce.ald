@@ -284,6 +284,7 @@ SECTION CE
 
 ; PAGE CE181
 
+; RE701 P2 is also exported as incr reset; use the data latch's same hold pin.
 +incr bits 8-15 even
   NOT
     -temp
@@ -299,12 +300,15 @@ SECTION CE
           +gate d18-21 to incr12-15
           -clock p3(RE)
           XOR
-            -e reg bits 8-11 even(RE)
+            +e reg bits 8-11 even(RE)
             +d reg bits 18-21 odd(RD)
         AND
           +gate cone to incr12-15
           -clock p3(RE)
           +e reg bits 8-11 even(RE)
+        AND
+          +clock p2 incr reset(RE)
+          +incr bits 8-15 even
 
 ; PAGE CE901
 

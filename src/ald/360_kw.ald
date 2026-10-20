@@ -824,19 +824,30 @@ NOCLOCK
     AND
       +error stop lth
       +delayed error log req
+CLOCK
+
+; KW093 delay shots are triggered by falling inputs and tick once per core edge.
 SPECIAL
-  SSN5500US
+  NSSN5500US
     -temp kw093 4e aj not
     OUT
     -temp kw093 6e ap ss
+
+NOCLOCK
+
 -temp kw093 4e aj not
     NOT
       -temp kw093 4b ag ss
+CLOCK
+
 SPECIAL
-  SSN5500US
+  NSSN5500US
     -temp kw093 2b aa not
     OUT
     -temp kw093 4b ag ss
+
+NOCLOCK
+
 -temp kw093 2b aa not
     NOT
       AND

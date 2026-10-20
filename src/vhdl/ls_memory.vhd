@@ -17,12 +17,10 @@
 library IEEE;
 use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
-USE ieee.std_logic_arith.all;
 
 
 entity LS_MEMORY is
     Port ( clk : in STD_LOGIC;
-			  hclk : in STD_LOGIC;
 			  rst : in STD_LOGIC;
 			  hlt : in STD_LOGIC;
 	        r_a : in STD_LOGIC_VECTOR (0 to 4);
@@ -49,7 +47,7 @@ begin
 				r_p <= (others=>'0');
 				d <= (others=>(others=>'0'));
 				p <= (others=>(others=>'0'));
-			elsif (hlt='0' and hclk='1') then
+			elsif (hlt='0') then
 				r_d <= d(to_integer(unsigned(r_a)));
 				r_p <= p(to_integer(unsigned(r_a)));
 				if (w_g = '1') then
@@ -60,4 +58,3 @@ begin
 		end if;
 	end process;
 end Behavioral;
-

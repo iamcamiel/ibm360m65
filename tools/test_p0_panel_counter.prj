@@ -1,0 +1,2 @@
+vhdl work "../src/vhdl/p0_panel_counter.vhd"
+vhdl work "test_p0_panel_counter.vhd"

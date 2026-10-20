@@ -1,0 +1,3 @@
+vhdl work "../src/vhdl/p0_panel_counter.vhd"
+vhdl work "../src/vhdl/blinken.vhd"
+vhdl work "test_p0_panel_serial.vhd"

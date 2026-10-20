@@ -73,6 +73,7 @@ SECTION MA
 
 -sab p00-07
   NOR
+    +gt scan to sab
     AND
       +d parity 00-07(RD)
       +gate d to sab(MC)

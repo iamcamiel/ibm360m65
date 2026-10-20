@@ -378,7 +378,7 @@ NOCLOCK
       +p4 gate
     AND
       +temp
-        NOR
+        ORNOT
           -pwr on reset gated
           -set rosar scan[8](DS)
       +p4 gate

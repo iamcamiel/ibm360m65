@@ -38,7 +38,7 @@ SECTION RF
     AND
       -reset f00-03
       +f bit[0..3]
-       
+
 -f siba[0..7]
   NAND
     +f bit[0..7]
@@ -103,7 +103,7 @@ SECTION RF
     AND
       -reset f04-07
       +f bit[7]
- 
+
 +parity f00-f04
   XOR
     -f bit[5..7]
@@ -251,10 +251,9 @@ SECTION RF
               -saddl even parity bits 04-07(AS)
 
 +set p if gating sal 04-07
-  NOT
-    XOR
-      +f bit[0..3]
-      +temp s4-7 pty
+  XOR
+    +f bit[0..3]
+    +temp s4-7 pty
 
 +set p if gating sal 00-03
   NOT
@@ -332,5 +331,5 @@ SECTION RF
           -gt sal 04-07 to f 04-07(DR)
           -gt proc intr reg to f
       +clock p0(AS)
-      
-      
+
+

@@ -303,7 +303,7 @@ int ARCH_DEP(common_load_finish) (REGS *regs)
         HDC1(debug_cpu_state, regs);
         return -1;
     }
-#if defined(COMPARE_M65) || defined(SOFTWARE_M65)
+#if defined(COMPARE_M65) || defined(SOFTWARE_M65) || defined(HARDWARE_M65)
     write_m65_reg(M65_REG_IO_RESP, current_io_num);
 //    run_single_instruction(regs);
 #endif
@@ -461,13 +461,14 @@ int load_ipl (U16 lcss, U16 devnum, int cpu, int clear)
             newstate.EXTERNAL_.switches_0.F |= 0xffe000;
             for (int i=0;i<12;i++)
               newstate.EXTERNAL_.switches_0.F &= ~(((devnum>>i)&1)<<(23-i));
-            newstate.EXTERNAL_.switches_0.B14 = false;
+            /* KW321 consumes an active-high LOAD pressed flag. */
+            newstate.EXTERNAL_.switches_0.B14 = true;
             D_fprintf(lf, "   %06x\n", newstate.EXTERNAL_.switches_0.F);
 #endif
 #if defined(COMPARE_M65)
             for (int i = 0; i < 50; i++)
                 twenty_cycle(sysblk.regs);
-            newstate.EXTERNAL_.switches_0.B14 = true;
+            newstate.EXTERNAL_.switches_0.B14 = false;
             while ((!newstate.KW_INT._reset_delay_ss))
                 twenty_cycle();
             while (!((current_io_num ^read_m65_reg(M65_REG_IO_CMD))&0xc0000000))
